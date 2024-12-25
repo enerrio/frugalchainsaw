@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 import jax.random as jr
 import optax
-from jaxtyping import Array, Int, Key, PyTree, Scalar
+from jaxtyping import Array, Int, Float, Key, PyTree, Scalar
 from torch.utils.data import DataLoader
 from src.utils import configure_pbar, save_checkpoint
 
@@ -18,8 +18,8 @@ logger = logging.getLogger("train")
 @eqx.filter_value_and_grad
 def loss_fn(
     model: eqx.Module,
-    x: Int[Array, "batch 1 mels frames"],
-    y: Int[Array, "batch 1 mels frames"],
+    x: Float[Array, "batch 1 mels frames"],
+    y: Float[Array, " batch"],
     keys: Key[Array, " batch"],
 ) -> Scalar:
     """Forward pass of model and compute loss."""
@@ -34,8 +34,8 @@ def train_step(
     model: eqx.Module,
     optim: optax.GradientTransformation,
     opt_state: PyTree,
-    x: Int[Array, "batch 1 mels frames"],
-    y: Int[Array, "batch 1 mels frames"],
+    x: Float[Array, "batch 1 mels frames"],
+    y: Float[Array, " batch"],
     keys: Key[Array, " batch"],
 ) -> tuple[eqx.Module, PyTree, Scalar, Scalar]:
     """Single training step for a batch of data. Forward pass, compute loss/grads, update weights."""
@@ -48,8 +48,8 @@ def train_step(
 
 def validation_loss_fn(
     model: eqx.Module,
-    x: Int[Array, "batch 1 mels frames"],
-    y: Int[Array, "batch 1 mels frames"],
+    x: Float[Array, "batch 1 mels frames"],
+    y: Float[Array, " batch"],
 ) -> Scalar:
     logits = jax.vmap(model, in_axes=(0, None, None))(x, True, None)
     loss = optax.sigmoid_binary_cross_entropy(logits, y)
@@ -59,8 +59,8 @@ def validation_loss_fn(
 @eqx.filter_jit
 def validate_step(
     inference_model: eqx.Module,
-    x: Int[Array, "batch 1 mels frames"],
-    y: Int[Array, "batch 1 mels frames"],
+    x: Float[Array, "batch 1 mels frames"],
+    y: Float[Array, " batch"],
 ) -> Scalar:
     loss = validation_loss_fn(inference_model, x, y)
     return loss

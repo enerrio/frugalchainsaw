@@ -7,7 +7,7 @@ from jaxtyping import Array, Float, PRNGKeyArray
 
 def normal_init(
     key: PRNGKeyArray,
-    shape: tuple[int, int],
+    shape: tuple[int, ...],
     dtype: str,
     mean: float = 0.0,
     std: float = 0.02,

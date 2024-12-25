@@ -24,7 +24,7 @@ def main():
         print("Available commands: train, eval")
         sys.exit(1)
 
-    with install_import_hook(["transformer"], "typeguard.typechecked"):
+    with install_import_hook(["src"], "typeguard.typechecked"):
         if command == "train":
             run_train = importlib.import_module("run_train")
             run_train.main(args)

@@ -2,8 +2,9 @@ import os
 from glob import glob
 import einops
 import numpy as np
+import numpy.typing as npt
 import jax.numpy as jnp
-from jaxtyping import Array, Int
+from jaxtyping import Array, Float, Int
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -19,13 +20,13 @@ class ChainsawDataset(Dataset):
     def __len__(self) -> int:
         return self.features.shape[0]
 
-    def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, idx: int) -> tuple[npt.ArrayLike, npt.ArrayLike]:
         return self.features[idx], self.labels[idx]
 
 
 def collate_fn(
-    batch: list[tuple[list[int], list[int]]],
-) -> tuple[Int[Array, "batch 1 mels frames"], Int[Array, "batch pred"]]:
+    batch: list[tuple[npt.ArrayLike, npt.ArrayLike]],
+) -> tuple[Float[Array, "batch 1 mels frames"], Int[Array, " batch"]]:
     """Convert tensors to Jax arrays."""
     input_batch, target_batch = zip(*batch)
     input_array = jnp.array(input_batch)
@@ -58,7 +59,7 @@ def load_data(
     data_dir: str,
     split: str,
     batch_size: int,
-) -> tuple[DataLoader, DataLoader]:
+) -> DataLoader:
     """Load data, tokenize, and create dataloaders."""
     dataloader = create_dataloader(
         data_dir,

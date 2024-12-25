@@ -65,7 +65,11 @@ class TrainConfig:
         return self.results_dir / self.exp_name
 
 
-def main():
+def main(args=None):
+    # If arguments were provided, replace sys.argv so Pyrallis sees them
+    if args is not None and len(args) > 0:
+        sys.argv = [sys.argv[0]] + args
+
     cfg = pyrallis.parse(config_class=TrainConfig)
     os.makedirs(cfg.exp_dir, exist_ok=True)
     logfile = os.path.join(cfg.exp_dir, f"train_log_{cfg.exp_name}.jsonl")
