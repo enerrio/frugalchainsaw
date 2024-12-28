@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 import jax.random as jr
 import optax
-from jaxtyping import Array, Int, Float, Key, PyTree, Scalar
+from jaxtyping import Array, Float, Key, PyTree, Scalar
 from torch.utils.data import DataLoader
 from src.utils import configure_pbar, save_checkpoint
 
