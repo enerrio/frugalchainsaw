@@ -31,6 +31,11 @@ To train the model:
 python entry_point.py train --config_path=configs/baseline.yaml
 ```
 
+To run a benchmarking script:
+```bash
+python scripts/benchmark.py --layer_dims 1 16 32 64 128 --kernel_size 3 --epochs 10 --dtype float32 --batch_size 32
+```
+
 ## Environment
 ---
 This repo was developed using the following libraries:
