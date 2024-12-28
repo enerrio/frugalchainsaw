@@ -114,7 +114,7 @@ def main():
     )
 
     # Balance classes
-    print("Balancing classes...")
+    print("Balancing classes in training set...")
     balanced_train_dataset = downsample_majority_class(filtered_train_dataset)
     print(
         f"Number of training samples after downsampling: {len(balanced_train_dataset):,}"
@@ -192,12 +192,21 @@ def main():
         stratify=y_train,  # Maintain class distribution
     )
 
-    print(f"X_train shape: {X_train.shape}")
-    print(f"y_train shape: {y_train.shape}")
-    print(f"X_val shape: {X_val.shape}")
-    print(f"y_val shape: {y_val.shape}")
-    print(f"X_test shape: {X_test.shape}")
-    print(f"y_test shape: {y_test.shape}")
+    # Normalize data to zero mean and unit variance
+    mean = np.mean(X_train, axis=0)
+    std = np.std(X_train, axis=0) + 1e-6  # Avoid division by zero
+
+    # Apply normalization
+    X_train = (X_train - mean) / std
+    X_val = (X_val - mean) / std
+    X_test = (X_test - mean) / std
+
+    print(f"X_train shape: {X_train.shape} | mean: {np.mean(X_train):.3f} | std: {np.std(X_train):.3f}")
+    print(f"y_train shape: {y_train.shape} | class distribution: {np.bincount(y_train)}")
+    print(f"X_val shape: {X_val.shape} | mean: {np.mean(X_val):.3f} | std: {np.std(X_val):.3f}")
+    print(f"y_val shape: {y_val.shape} | class distribution: {np.bincount(y_val)}")
+    print(f"X_test shape: {X_test.shape} | mean: {np.mean(X_test):.3f} | std: {np.std(X_test):.3f}")
+    print(f"y_test shape: {y_test.shape} | class distribution: {np.bincount(y_test)}")
 
     np.save("data/X_train.npy", X_train)
     np.save("data/y_train.npy", y_train)
