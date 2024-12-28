@@ -15,6 +15,7 @@ class ChainsawDataset(Dataset):
         labels_fp = glob(os.path.join(data_dir, f"y_{split}.npy"))[0]
         self.features = np.load(features_fp)
         self.labels = np.load(labels_fp)
+        # Add channel dimension
         self.features = einops.rearrange(self.features, "num_samples mels frames -> num_samples 1 mels frames")
 
     def __len__(self) -> int:
