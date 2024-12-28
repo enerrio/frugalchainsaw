@@ -76,13 +76,13 @@ def downsample_majority_class(dataset: Dataset) -> Dataset:
     return balanced_dataset
 
 
-def compute_mel_spectrogram(audio: np.ndarray, sr: int = 12000) -> np.ndarray:
+def compute_log_mel_spectrogram(audio: np.ndarray, sr: int = 12000) -> np.ndarray:
     """Compute mel spectrogram from audio."""
     audio_stft = librosa.stft(audio)
     audio_stft_mag, _ = librosa.magphase(audio_stft)
     mel_spectrogram = librosa.feature.melspectrogram(S=audio_stft_mag, sr=sr)
-    mel_spectrogram = librosa.amplitude_to_db(mel_spectrogram, ref=np.max)
-    return mel_spectrogram
+    log_mel_spectrogram = librosa.amplitude_to_db(mel_spectrogram, ref=np.max)
+    return log_mel_spectrogram
 
 
 def main():
@@ -157,13 +157,13 @@ def main():
     print("Computing mel spectrograms...")
     sgram_train_dataset = padded_train_dataset.map(
         lambda x: {
-            "array": compute_mel_spectrogram(x["audio"]["array"]),
+            "array": compute_log_mel_spectrogram(x["audio"]["array"]),
             "label": x["label"],
         }
     )
     sgram_test_dataset = padded_test_dataset.map(
         lambda x: {
-            "array": compute_mel_spectrogram(x["audio"]["array"]),
+            "array": compute_log_mel_spectrogram(x["audio"]["array"]),
             "label": x["label"],
         }
     )
