@@ -3,4 +3,4 @@ __pycache__/
 .env
 data/*.npy
 .coverage
-.jsonl
+*.jsonl
