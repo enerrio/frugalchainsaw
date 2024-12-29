@@ -40,6 +40,16 @@ def train_step(
 ) -> tuple[eqx.Module, PyTree, Scalar, Scalar]:
     """Single training step for a batch of data. Forward pass, compute loss/grads, update weights."""
     loss, grads = loss_fn(model, x, y, keys)
+    # jax.debug.print(f"x: {x.shape}")
+    # jax.debug.print(f"y: {y.shape}")
+    # jax.debug.print(f"loss: {loss}")
+    # logits = jax.vmap(model, in_axes=(0, None, 0))(x, False, keys)
+    # jax.debug.print(f"logits shape: {logits.shape}")
+    # jax.debug.print(f"logits: {logits}")
+    # vals, _ = jax.tree.flatten(grads)
+    # jax.debug.print(f"values: {vals}")
+    # jax.debug.print(f"max/min values: {[v.max() for v in vals]}")
+    # jax.debug.print(f"grads: {grads.layers[0].weight}")
     updates, opt_state = optim.update(grads, opt_state, eqx.filter(model, eqx.is_array))
     model = eqx.apply_updates(model, updates)
     grad_norm = optax.tree_utils.tree_l2_norm(grads)
@@ -52,7 +62,7 @@ def validation_loss_fn(
     y: Float[Array, " batch"],
 ) -> Scalar:
     logits = jax.vmap(model, in_axes=(0, None, None))(x, True, None)
-    loss = optax.sigmoid_binary_cross_entropy(logits, y)
+    loss = optax.losses.sigmoid_binary_cross_entropy(logits, y)
     return loss.mean()
 
 
@@ -80,7 +90,6 @@ def train(
     """Train the model."""
     opt_state = optim.init(eqx.filter(model, eqx.is_array))
 
-    tokens_seen = 0
     main_pbar = configure_pbar()
     panel = Panel(
         main_pbar,

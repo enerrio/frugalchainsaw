@@ -13,15 +13,15 @@ from rich.progress import (
 from src.model import Network
 
 
-
-
 def save_checkpoint(filename: str, model: eqx.Module) -> None:
     """Save model to disk."""
     with open(filename, "wb") as f:
         eqx.tree_serialise_leaves(f, model)
 
 
-def load_checkpoint(filename: str, layer_dims: list[int], kernel_size: int) -> eqx.Module:
+def load_checkpoint(
+    filename: str, layer_dims: list[int], kernel_size: int
+) -> eqx.Module:
     """Load saved model."""
     skeleton = Network(layer_dims, kernel_size, jr.key(21))
     with open(filename, "rb") as f:
@@ -34,7 +34,9 @@ def configure_pbar() -> Progress:
         TextColumn(
             "[progress.description]{task.description}", table_column=Column(ratio=1)
         ),
-        TextColumn("{task.completed:,} of [underline]{task.total:,}[/underline] epochs completed"),
+        TextColumn(
+            "{task.completed:,} of [underline]{task.total:,}[/underline] epochs completed"
+        ),
         TextColumn("•"),
         BarColumn(bar_width=None, table_column=Column(ratio=2)),
         TaskProgressColumn(text_format="[progress.percentage]{task.percentage:>3.1f}%"),
@@ -59,80 +61,48 @@ def read_log_file(logfile: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     return train_df, val_df
 
 
-# def plot_stats(logfile: str, plot_name: str) -> None:
-#     """Plots training stats Plotly."""
-#     train_df, val_df = read_log_file(logfile)
-#     fig = make_subplots(
-#         3,
-#         1,
-#         shared_xaxes=True,
-#         subplot_titles=("Training & Validation Loss", "Learning Rate"),
-#     )
+import matplotlib.pyplot as plt
 
-#     # Plot Training Loss
-#     fig.add_trace(
-#         go.Scatter(
-#             x=train_df["step"],
-#             y=train_df["train_loss"],
-#             name="Train Loss",
-#             line=dict(color="blue"),
-#         ),
-#         row=1,
-#         col=1,
-#     )
 
-#     # Plot Validation Loss
-#     fig.add_trace(
-#         go.Scatter(
-#             x=val_df["step"],
-#             y=val_df["val_loss"],
-#             name="Validation Loss",
-#             line=dict(color="orange"),
-#         ),
-#         row=1,
-#         col=1,
-#     )
+def plot_stats(logfile: str, plot_name: str) -> None:
+    """Plots training stats."""
+    train_df, val_df = read_log_file(logfile)
+    # temp
+    train_df = train_df.loc[train_df["step"] == 1]
+    val_df = val_df.loc[val_df["step"] == 1]
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
 
-#     # Plot learning rate
-#     fig.add_trace(
-#         go.Scatter(
-#             x=train_df["step"],
-#             y=train_df["learning_rate"],
-#             name="Learning Rate",
-#             line=dict(color="blue"),
-#         ),
-#         row=2,
-#         col=1,
-#     )
+    # Plot loss
+    axes[0, 0].plot(train_df["loss"], label="Training Loss")
+    axes[0, 0].plot(val_df["val_loss"], label="Validation Loss")
+    axes[0, 0].set_title("Model Loss")
+    axes[0, 0].set_xlabel("Epoch")
+    axes[0, 0].set_ylabel("Loss")
+    axes[0, 0].legend()
 
-#     # Configure secondary x-axis for tokens_seen
-#     fig.update_layout(
-#         title="Training Stats",
-#         template="plotly_white",
-#         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-#     )
-#     # Set x-axis title
-#     fig.update_xaxes(
-#         title_text="Step", showticklabels=True, tick0=0, dtick=10, row=1, col=1
-#     )
-#     # fig.update_xaxes(
-#     #     overlaying="x",
-#     #     side="top",
-#     #     showticklabels=True,
-#     #     # tick0=0,
-#     #     # dtick=1000,
-#     #     tickvals=train_df["step"],
-#     #     ticktext=train_df["tokens_seen"].astype(str),
-#     #     title="Tokens Seen",
-#     #     row=1, col=1
-#     # )
-#     fig.update_xaxes(
-#         title_text="Step", showticklabels=True, tick0=0, dtick=10, row=2, col=1
-#     )
+    # Plot accuracy
+    axes[0, 1].plot(train_df["accuracy"], label="Training Accuracy")
+    axes[0, 1].plot(val_df["val_accuracy"], label="Validation Accuracy")
+    axes[0, 1].set_title("Model Accuracy")
+    axes[0, 1].set_xlabel("Epoch")
+    axes[0, 1].set_ylabel("Accuracy")
+    axes[0, 1].legend()
 
-#     # Set y-axes titles
-#     fig.update_yaxes(title_text="<b>Loss</b>", row=1, col=1)
-#     fig.update_yaxes(title_text="<b>Learning Rate</b>", tickformat=".5f", row=2, col=1)
-#     fig.write_html(plot_name)
+    # Plot precision
+    axes[1, 0].plot(train_df["precision"], label="Training Precision")
+    axes[1, 0].plot(val_df["val_precision"], label="Validation Precision")
+    axes[1, 0].set_title("Model Precision")
+    axes[1, 0].set_xlabel("Epoch")
+    axes[1, 0].set_ylabel("Precision")
+    axes[1, 0].legend()
 
-#     fig.show()
+    # Plot recall
+    axes[1, 1].plot(train_df["recall"], label="Training Recall")
+    axes[1, 1].plot(val_df["val_recall"], label="Validation Recall")
+    axes[1, 1].set_title("Model Recall")
+    axes[1, 1].set_xlabel("Epoch")
+    axes[1, 1].set_ylabel("Recall")
+    axes[1, 1].legend()
+
+    plt.tight_layout()
+    plt.savefig(plot_name)

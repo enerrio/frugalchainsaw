@@ -10,6 +10,7 @@ def main():
         rprint("Usage: python entry_point.py <command> [args...]")
         rprint("Commands:")
         rprint("- train: Run the training script")
+        rprint("- plot: Run the plotting script")
         rprint("- eval: Run the evaluation script")
         sys.exit(1)
 
@@ -17,17 +18,20 @@ def main():
     args = sys.argv[2:]
 
     # Define the mapping of commands to scripts
-    command_map = {"train": "run_train.py", "eval": "run_evals.py"}
+    command_map = {"train": "run_train.py", "plot": "run_plot.py", "eval": "run_evals.py"}
 
     if command not in command_map:
         print(f"Unknown command: {command}")
-        print("Available commands: train, eval")
+        print("Available commands: train, plot, eval")
         sys.exit(1)
 
     with install_import_hook(["src"], "typeguard.typechecked"):
         if command == "train":
             run_train = importlib.import_module("run_train")
             run_train.main(args)
+        elif command == "plot":
+            run_plot = importlib.import_module("run_plot")
+            run_plot.main(args)
         elif command == "eval":
             run_eval = importlib.import_module("run_evals")
             run_eval.main(args)
