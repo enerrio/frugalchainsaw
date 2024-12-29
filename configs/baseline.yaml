@@ -7,7 +7,7 @@ learning_rate: 0.0004
 weight_decay: 0.1
 warmup_percentage: 0.05
 decay_percentage: 0.1
-dtype: float16
+dtype: float32
 checkpoint_freq: 5
 results_dir: results
 exp_name: baseline
