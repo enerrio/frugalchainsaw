@@ -17,6 +17,9 @@ class ChainsawDataset(Dataset):
         self.labels = np.load(labels_fp)
         # Add channel dimension
         self.features = einops.rearrange(self.features, "num_samples mels frames -> num_samples 1 mels frames")
+        # Testing
+        # self.features = self.features[:1000]
+        # self.labels = self.labels[:1000]
 
     def __len__(self) -> int:
         return self.features.shape[0]
@@ -61,7 +64,7 @@ def load_data(
     split: str,
     batch_size: int,
 ) -> DataLoader:
-    """Load data, tokenize, and create dataloaders."""
+    """Load data and create dataloaders."""
     dataloader = create_dataloader(
         data_dir,
         split,
