@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.model import Network
 from src.dataset import load_data
-from src.train import loss_fn
+from src.train import forward_pass
 
 
 def measure_runtime(
@@ -47,7 +47,7 @@ def measure_runtime(
 
     def singlepass(model, optim, opt_state, x, y, keys):
         """Forward + backward pass of the model."""
-        loss, grads = loss_fn(model, x, y, keys)
+        (loss, _), grads = forward_pass(model, x, y, keys)
         updates, opt_state = optim.update(
             grads, opt_state, eqx.filter(model, eqx.is_array)
         )
@@ -188,7 +188,7 @@ def main(args=None) -> None:
     )
 
     # run forward and backward pass then get actual memory usage
-    loss_fn(model, x_sample, y_sample, sample_keys)
+    forward_pass(model, x_sample, y_sample, sample_keys)
     memory_usage_mb = get_memory_usage()
     memory_usage_gb = memory_usage_mb / 1024
     print(
