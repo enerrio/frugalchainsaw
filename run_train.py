@@ -8,7 +8,6 @@ from functools import partial
 from dataclasses import dataclass
 import jax
 import jax.random as jr
-import jax.numpy as jnp
 import optax
 import equinox as eqx
 import pyrallis
@@ -23,6 +22,7 @@ from src.utils import save_checkpoint
 @partial(optax.inject_hyperparams, static_args="weight_decay")
 def create_optimizer(learning_rate, weight_decay):
     return optax.chain(
+        # optax.clip_by_global_norm(1.0),
         optax.scale_by_adam(),
         optax.add_decayed_weights(weight_decay=weight_decay),
         optax.scale_by_learning_rate(learning_rate=learning_rate),
@@ -39,8 +39,7 @@ class TrainConfig:
     # Number of data samples in batch
     batch_size: int = 32
     # Model layer sizes
-    # layer_dims: list[int] = [1, 16, 32, 64, 128]
-    layer_dims: list[int] = field(default_factory=lambda: [1, 16, 32, 64, 128])
+    layer_dims: list[int] = field(default_factory=lambda: [1, 32, 64])
     # Convolutional kernel size
     kernel_size: int = 3
     # Max learning rate

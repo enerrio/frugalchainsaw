@@ -15,19 +15,6 @@ from src.utils import configure_pbar, save_checkpoint
 logger = logging.getLogger("train")
 
 
-# @eqx.filter_value_and_grad
-# def loss_fn(
-#     model: eqx.Module,
-#     x: Float[Array, "batch 1 mels frames"],
-#     y: Float[Array, " batch"],
-#     keys: Key[Array, " batch"],
-# ) -> Scalar:
-#     """Forward pass of model and compute loss."""
-#     logits = jax.vmap(model, in_axes=(0, None, 0))(x, False, keys)
-#     loss = optax.losses.sigmoid_binary_cross_entropy(logits, y)
-#     return loss.mean()
-
-
 @eqx.filter_value_and_grad(has_aux=True)
 def forward_pass(
     model: eqx.Module,
@@ -36,7 +23,7 @@ def forward_pass(
     keys: Key[Array, " batch"],
 ) -> tuple[Scalar, Float[Array, "batch 1"]]:
     """Forward pass of model and compute loss."""
-    logits = jax.vmap(model, in_axes=(0, None, 0))(x, False, keys)  # shape: (batch, 1)
+    logits = jax.vmap(model, in_axes=(0, None, 0))(x, False, keys)
     loss = optax.losses.sigmoid_binary_cross_entropy(logits, y).mean()
     return loss, logits
 
@@ -62,18 +49,7 @@ def train_step(
     keys: Key[Array, " batch"],
 ) -> tuple[eqx.Module, PyTree, Scalar, Float[Array, "batch 1"], Scalar]:
     """Single training step for a batch of data. Forward pass, compute loss/grads, update weights."""
-    # loss, grads = loss_fn(model, x, y, keys)
     (loss, logits), grads = forward_pass(model, x, y, keys)
-    # jax.debug.print(f"x: {x.shape}")
-    # jax.debug.print(f"y: {y.shape}")
-    # jax.debug.print(f"loss: {loss}")
-    # logits = jax.vmap(model, in_axes=(0, None, 0))(x, False, keys)
-    # jax.debug.print(f"logits shape: {logits.shape}")
-    # jax.debug.print(f"logits: {logits}")
-    # vals, _ = jax.tree.flatten(grads)
-    # jax.debug.print(f"values: {vals}")
-    # jax.debug.print(f"max/min values: {[v.max() for v in vals]}")
-    # jax.debug.print(f"grads: {grads.layers[0].weight}")
     updates, opt_state = optim.update(grads, opt_state, eqx.filter(model, eqx.is_array))
     model = eqx.apply_updates(model, updates)
     grad_norm = optax.tree_utils.tree_l2_norm(grads)
@@ -158,6 +134,7 @@ def train(
                 total_tp += tp
                 total_fp += fp
                 total_fn += fn
+                epoch_loss += loss
                 total_correct += correct
                 total_samples += x_batch.shape[0]
 
