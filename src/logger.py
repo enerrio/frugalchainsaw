@@ -14,6 +14,7 @@ class JsonFormatter(logging.Formatter):
             "step": getattr(record, "step", None),
             "epoch": getattr(record, "epoch", None),
             "step_train_loss": getattr(record, "step_train_loss", None),
+            "epoch_train_loss": getattr(record, "epoch_train_loss", None),
             "epoch_train_accuracy": getattr(record, "epoch_train_accuracy", None),
             "epoch_train_precision": getattr(record, "epoch_train_precision", None),
             "epoch_train_recall": getattr(record, "epoch_train_recall", None),
@@ -34,7 +35,7 @@ class StepFilter(logging.Filter):
     """Custom filter to allow only log records that start with 'Step '."""
 
     def filter(self, record: logging.LogRecord) -> bool:
-        return hasattr(record, "step")
+        return hasattr(record, "mode")
 
 
 def setup_logger(

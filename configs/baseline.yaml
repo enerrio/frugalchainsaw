@@ -3,7 +3,7 @@ epochs: 10
 batch_size: 64
 layer_dims: [1, 32, 64]
 kernel_size: 3
-learning_rate: 0.0004
+learning_rate: 0.004
 weight_decay: 0.1
 warmup_percentage: 0.05
 decay_percentage: 0.1

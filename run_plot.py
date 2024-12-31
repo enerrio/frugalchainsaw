@@ -25,8 +25,8 @@ def main(args=None) -> None:
         sys.argv = [sys.argv[0]] + args
 
     cfg = pyrallis.parse(config_class=PlotConfig)
-    logfile = glob(f"results/{args.exp_name}/*.jsonl")[0]
-    plot_name = f"{cfg.exp_name}/train_plot_{cfg.exp_name}.png"
+    logfile = glob(f"{cfg.exp_dir}/*.jsonl")[0]
+    plot_name = f"{cfg.exp_dir}/train_plot_{cfg.exp_name}.png"
     plot_stats(logfile, plot_name=plot_name)
     print(f"Plot saved to {plot_name}")
 

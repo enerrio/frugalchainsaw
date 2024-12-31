@@ -10,6 +10,7 @@ from rich.progress import (
     TaskProgressColumn,
     Column,
 )
+import matplotlib.pyplot as plt
 from src.model import Network
 
 
@@ -55,53 +56,52 @@ def read_log_file(logfile: str) -> tuple[pd.DataFrame, pd.DataFrame]:
             records.append(record)
     df = pd.DataFrame(records)
 
-    # Separate training and validation
-    train_df = df[df["mode"] == "training"].sort_values("step").reset_index(drop=True)
-    val_df = df[df["mode"] == "validation"].sort_values("step").reset_index(drop=True)
-    return train_df, val_df
-
-
-import matplotlib.pyplot as plt
+    # Separate between step-wise and epoch-wise metrics
+    step_df = df[df["mode"] == "step"].sort_values("step").reset_index(drop=True)
+    epoch_df = df[df["mode"] == "epoch"].sort_values("step").reset_index(drop=True)
+    return step_df, epoch_df
 
 
 def plot_stats(logfile: str, plot_name: str) -> None:
     """Plots training stats."""
-    train_df, val_df = read_log_file(logfile)
-    # temp
-    train_df = train_df.loc[train_df["step"] == 1]
-    val_df = val_df.loc[val_df["step"] == 1]
+    step_df, epoch_df = read_log_file(logfile)
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
 
     # Plot loss
-    axes[0, 0].plot(train_df["loss"], label="Training Loss")
-    axes[0, 0].plot(val_df["val_loss"], label="Validation Loss")
+    axes[0, 0].plot(epoch_df["epoch_train_loss"], label="Training Loss")
+    axes[0, 0].plot(epoch_df["epoch_val_loss"], label="Validation Loss")
     axes[0, 0].set_title("Model Loss")
     axes[0, 0].set_xlabel("Epoch")
     axes[0, 0].set_ylabel("Loss")
     axes[0, 0].legend()
 
-    # Plot accuracy
-    axes[0, 1].plot(train_df["accuracy"], label="Training Accuracy")
-    axes[0, 1].plot(val_df["val_accuracy"], label="Validation Accuracy")
-    axes[0, 1].set_title("Model Accuracy")
-    axes[0, 1].set_xlabel("Epoch")
-    axes[0, 1].set_ylabel("Accuracy")
+    axes[0, 1].plot(step_df["step_time"], label="Training Step Time")
+    axes[0, 1].set_title("Training Step Time")
+    axes[0, 1].set_xlabel("Step")
+    axes[0, 1].set_ylabel("Time (ms)")
     axes[0, 1].legend()
 
-    # Plot precision
-    axes[1, 0].plot(train_df["precision"], label="Training Precision")
-    axes[1, 0].plot(val_df["val_precision"], label="Validation Precision")
-    axes[1, 0].set_title("Model Precision")
+    # Plot accuracy
+    axes[1, 0].plot(epoch_df["epoch_train_accuracy"], label="Training Accuracy")
+    axes[1, 0].plot(epoch_df["epoch_val_accuracy"], label="Validation Accuracy")
+    axes[1, 0].set_title("Model Accuracy")
     axes[1, 0].set_xlabel("Epoch")
-    axes[1, 0].set_ylabel("Precision")
+    axes[1, 0].set_ylabel("Accuracy")
+    axes[1, 0].set_ylim(0, 105)
     axes[1, 0].legend()
 
+    # Plot precision
+    axes[1, 1].plot(epoch_df["epoch_train_precision"], label="Training Precision")
+    axes[1, 1].plot(epoch_df["epoch_val_precision"], label="Validation Precision")
+    axes[1, 1].set_title("Model Precision")
+
     # Plot recall
-    axes[1, 1].plot(train_df["recall"], label="Training Recall")
-    axes[1, 1].plot(val_df["val_recall"], label="Validation Recall")
-    axes[1, 1].set_title("Model Recall")
+    axes[1, 1].plot(epoch_df["epoch_train_recall"], label="Training Recall")
+    axes[1, 1].plot(epoch_df["epoch_val_recall"], label="Validation Recall")
+    axes[1, 1].set_title("Model Recall + Precision")
     axes[1, 1].set_xlabel("Epoch")
-    axes[1, 1].set_ylabel("Recall")
+    axes[1, 1].set_ylabel("Score")
+    axes[1, 1].set_ylim(0, 1.05)
     axes[1, 1].legend()
 
     plt.tight_layout()

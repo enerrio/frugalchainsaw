@@ -141,7 +141,7 @@ def train(
                 logger.info(
                     f"Step [{i+1:07d}/{len(train_dataloader):07d}] | Train Loss: {loss:.4f} | lr: {lr:.6f} | Grad Norm: {grad_norm:.3f} | Step Time: {step_time:04.0f}ms",
                     extra={
-                        "mode": "training",
+                        "mode": "step",
                         "step": i + 1,
                         "epoch": epoch,
                         "step_train_loss": round(loss, 4),
@@ -195,7 +195,7 @@ def train(
                 f"| Train Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.2f}%, Precision: {epoch_precision:.3f}, Recall: {epoch_recall:.3f} "
                 f"| Val Loss: {val_loss:.4f}, Accuracy: {val_accuracy:.2f}%, Precision: {val_precision:.3f}, Recall: {val_recall:.3f}",
                 extra={
-                    "mode": "validation",
+                    "mode": "epoch",
                     "step": i + 1,
                     "epoch": epoch,
                     "step_train_loss": None,

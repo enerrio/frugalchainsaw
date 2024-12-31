@@ -31,9 +31,20 @@ To train the model:
 python entry_point.py train --config_path=configs/baseline.yaml
 ```
 
+To plot results:
+```bash
+python entry_point.py plot --exp_name=baseline
+```
+
 To run a benchmarking script:
 ```bash
-python scripts/benchmark.py --layer_dims 1 16 32 64 128 --kernel_size 3 --epochs 10 --dtype float32 --batch_size 32
+python scripts/benchmark.py --layer_dims 1 32 64 --kernel_size 3 --epochs 10 --dtype float32 --batch_size 32
+```
+
+To download all dependencies and preprocess data on a new machine:
+```bash
+chmod +x setup.sh
+./setup.sh git@github.com:enerrio/frugalchainsaw.git main
 ```
 
 ## Environment
@@ -66,3 +77,4 @@ TODO:
 - [X] remember to resample audio during inference and on test data
 - [X] create script `prep_data.py` that downloads and preprocesses data and saves to numpy arrays in data/
 - [X] drop 0-length arrays in test set after downsampling
+- [ ] try applying normalization per frequency bin
