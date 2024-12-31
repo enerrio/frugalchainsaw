@@ -8,7 +8,7 @@ from src.utils import plot_stats
 
 @dataclass
 class PlotConfig:
-    """Training config."""
+    """Plot config."""
 
     # Directory to save results
     results_dir: Path = Path("results")
