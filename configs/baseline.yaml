@@ -1,7 +1,7 @@
 seed: 42
 epochs: 10
 batch_size: 64
-layer_dims: [1, 16, 32, 64, 128]
+layer_dims: [1, 32, 64]
 kernel_size: 3
 learning_rate: 0.0004
 weight_decay: 0.1

@@ -2,23 +2,23 @@ import jax.random as jr
 import jax.numpy as jnp
 import equinox as eqx
 import optax
-from src.train import loss_fn, validation_loss_fn, train_step
+from src.train import forward_pass, validation_forward_pass, train_step
 
 
-def test_loss_fn(dummy_model, dummy_data, key):
-    """Test that loss_fn runs without error and returns a scalar."""
+def test_forward_pass(dummy_model, dummy_data, key):
+    """Test that forward_pass runs without error and returns a scalar."""
     x, y = dummy_data
     keys = jr.split(key, x.shape[0] + 1)[1:]
-    loss, _ = loss_fn(dummy_model, x, y, jnp.array(keys))
+    (loss, _), _ = forward_pass(dummy_model, x, y, jnp.array(keys))
     # Expect a single scalar for the loss
-    assert jnp.ndim(loss) == 0, "loss_fn should return a scalar value."
+    assert jnp.ndim(loss) == 0, "forward_pass should return a scalar value."
 
 
-def test_validation_loss_fn(dummy_model, dummy_data):
-    """Test that validation_loss_fn returns a scalar."""
+def test_validation_forward_pass(dummy_model, dummy_data):
+    """Test that validation_forward_pass returns a scalar."""
     x, y = dummy_data
-    loss = validation_loss_fn(dummy_model, x, y)
-    assert jnp.ndim(loss) == 0, "validation_loss_fn should return a scalar value."
+    loss, _ = validation_forward_pass(dummy_model, x, y)
+    assert jnp.ndim(loss) == 0, "validation_forward_pass should return a scalar value."
 
 
 def test_train_step(dummy_model, dummy_data, key):
@@ -35,7 +35,7 @@ def test_train_step(dummy_model, dummy_data, key):
     key, *subkeys = jr.split(key, len(x) + 1)
     subkeys = jnp.array(subkeys)
 
-    new_model, _, loss, grad_norm = train_step(
+    new_model, _, loss, _, grad_norm = train_step(
         dummy_model, optim, opt_state, x, y, subkeys
     )
 
