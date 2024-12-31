@@ -79,7 +79,7 @@ class Network(eqx.Module):
         x: Float[Array, "1 mels frames"],
         inference: bool = False,
         key: PRNGKeyArray = None,
-    ) -> Float[Array, " prediction"]:
+    ) -> Float[Array, " 1"]:
         for layer in self.layers:
             x = layer(x)
             # batchnorm
