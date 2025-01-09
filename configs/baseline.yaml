@@ -1,11 +1,11 @@
 seed: 42
 epochs: 10
-batch_size: 64
+batch_size: 32
 layer_dims: [1, 32, 64]
 kernel_size: 3
-learning_rate: 0.004
-weight_decay: 0.1
-warmup_percentage: 0.05
+learning_rate: 0.001
+weight_decay: 0
+warmup_percentage: 0.1
 decay_percentage: 0.1
 dtype: float32
 checkpoint_freq: 5
