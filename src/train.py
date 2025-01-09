@@ -68,7 +68,7 @@ def validate_step(
 
 def compute_metrics_from_logits(
     logits: Float[Array, "batch 1"], labels: Float[Array, " batch"]
-) -> tuple[int, int, int, int]:
+) -> tuple[int, int, int, int, int]:
     """Calculate TP, FP, FN, and correct predictions from logits and labels."""
     preds = jax.nn.sigmoid(logits)
     preds_bin = (preds >= 0.5).astype(jnp.float32)
@@ -78,8 +78,9 @@ def compute_metrics_from_logits(
     tp = jnp.sum((preds_bin == 1) & (y_bin == 1)).item()
     fp = jnp.sum((preds_bin == 1) & (y_bin == 0)).item()
     fn = jnp.sum((preds_bin == 0) & (y_bin == 1)).item()
+    tn = jnp.sum((preds_bin == 0) & (y_bin == 0)).item()
     correct = jnp.sum(preds_bin == y_bin).item()
-    return tp, fp, fn, correct
+    return tp, fp, fn, tn, correct
 
 
 def train(
@@ -131,7 +132,7 @@ def train(
                 grad_norm = grad_norm.item()
                 lr = lr.item()
                 # Calculate accuracy, precision, and recall
-                tp, fp, fn, correct = compute_metrics_from_logits(logits, y_batch)
+                tp, fp, fn, _, correct = compute_metrics_from_logits(logits, y_batch)
                 total_tp += tp
                 total_fp += fp
                 total_fn += fn
@@ -147,13 +148,6 @@ def train(
                         "epoch": epoch,
                         "step_train_loss": round(loss, 4),
                         "epoch_train_loss": round(epoch_loss, 4),
-                        "epoch_train_accuracy": None,
-                        "epoch_train_precision": None,
-                        "epoch_train_recall": None,
-                        "epoch_val_loss": None,
-                        "epoch_val_accuracy": None,
-                        "epoch_val_precision": None,
-                        "epoch_val_recall": None,
                         "learning_rate": round(lr, 6),
                         "grad_norm": round(grad_norm, 3),
                         "step_time": round(step_time, 4),
@@ -161,7 +155,7 @@ def train(
                 )
 
             epoch_loss /= len(train_dataloader)
-            epoch_accuracy = float(total_correct / total_samples) * 100.
+            epoch_accuracy = float(total_correct / total_samples) * 100.0
             epoch_precision = total_tp / (total_tp + total_fp + 1e-9)
             epoch_recall = total_tp / (total_tp + total_fn + 1e-9)
 
@@ -170,16 +164,17 @@ def train(
             main_pbar.update(val_task, visible=True)
             val_loss = 0.0
             val_total_samples = 0
-            val_tp = val_fp = val_fn = val_correct = 0
+            val_tp = val_fp = val_fn = val_tn = val_correct = 0
             inference_model = eqx.nn.inference_mode(model)
             for x_val, y_val in val_dataloader:
                 x_val, y_val = x_val.astype(dtype), y_val.astype(dtype)
                 loss, logits = validate_step(inference_model, x_val, y_val)
                 val_loss += loss
-                tp, fp, fn, correct = compute_metrics_from_logits(logits, y_val)
+                tp, fp, fn, tn, correct = compute_metrics_from_logits(logits, y_val)
                 val_tp += tp
                 val_fp += fp
                 val_fn += fn
+                val_tn += tn
                 val_correct += correct
                 val_total_samples += x_val.shape[0]
                 main_pbar.update(val_task, advance=1)
@@ -187,7 +182,7 @@ def train(
 
             # Average and store loss
             val_loss = (val_loss / len(val_dataloader)).item()
-            val_accuracy = float(val_correct / val_total_samples) * 100.
+            val_accuracy = float(val_correct / val_total_samples) * 100.0
             val_precision = val_tp / (val_tp + val_fp + 1e-9)
             val_recall = val_tp / (val_tp + val_fn + 1e-9)
 
@@ -199,7 +194,6 @@ def train(
                     "mode": "epoch",
                     "step": i + 1,
                     "epoch": epoch,
-                    "step_train_loss": None,
                     "epoch_train_loss": round(epoch_loss, 4),
                     "epoch_train_accuracy": round(epoch_accuracy, 4),
                     "epoch_train_precision": round(epoch_precision, 4),
@@ -208,9 +202,10 @@ def train(
                     "epoch_val_accuracy": round(val_accuracy, 4),
                     "epoch_val_precision": round(val_precision, 4),
                     "epoch_val_recall": round(val_recall, 4),
-                    "learning_rate": None,
-                    "grad_norm": None,
-                    "step_time": None,
+                    "epoch_val_tp": val_tp,
+                    "epoch_val_fp": val_fp,
+                    "epoch_val_tn": val_tn,
+                    "epoch_val_fn": val_fn,
                 },
             )
 

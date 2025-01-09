@@ -1,4 +1,5 @@
 import json
+import numpy as np
 import jax.random as jr
 import pandas as pd
 import equinox as eqx
@@ -10,7 +11,6 @@ from rich.progress import (
     TaskProgressColumn,
     Column,
 )
-# from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 from src.model import Network
 
@@ -63,7 +63,7 @@ def read_log_file(logfile: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     return step_df, epoch_df
 
 
-def plot_stats(logfile: str, plot_name: str) -> None:
+def plot_stats(logfile: str, plot_name: str, cm_name: str) -> None:
     """Plots training stats."""
     step_df, epoch_df = read_log_file(logfile)
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
@@ -107,18 +107,55 @@ def plot_stats(logfile: str, plot_name: str) -> None:
 
     plt.tight_layout()
     plt.savefig(plot_name)
-
     plt.close(fig)
 
     # Create confusion matrix
-    # Adjust columns to match your log (e.g. 'epoch_val_labels', 'epoch_val_preds')
-    # y_true = epoch_df["epoch_val_labels"]
-    # y_pred = epoch_df["epoch_val_preds"]
-    # cm = confusion_matrix(y_true, y_pred)
+    cm = np.array(
+        [
+            [
+                epoch_df.iloc[-1, epoch_df.columns.get_loc("epoch_val_tp")],
+                epoch_df.iloc[-1, epoch_df.columns.get_loc("epoch_val_tn")],
+            ],
+            [
+                epoch_df.iloc[-1, epoch_df.columns.get_loc("epoch_val_fp")],
+                epoch_df.iloc[-1, epoch_df.columns.get_loc("epoch_val_fn")],
+            ],
+        ],
+        dtype=int,
+    )
 
-    # disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-    # fig_cm, ax_cm = plt.subplots(figsize=(8, 6))
-    # disp.plot(ax=ax_cm)
-    # ax_cm.set_title("Confusion Matrix")
-    # plt.savefig(cm_name)
-    # plt.close(fig_cm)
+    fig_cm, (ax1, ax2) = plt.subplots(1, 2, sharex=True, figsize=(12, 5))
+
+    im1 = ax1.imshow(cm, interpolation="nearest", cmap="coolwarm")
+    ax1.set_title("Confusion Matrix")
+    ax1.set_ylabel("True label")
+    ax1.set_xlabel("Predicted label")
+    ax1.set_xticks([0, 1])
+    ax1.set_yticks([0, 1])
+    plt.colorbar(im1, ax=ax1)
+    # Add annotations
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax1.text(j, i, f"{cm[i, j]:d}", ha="center", va="center", color="black")
+
+    # Normalize confusion matrix
+    cm_norm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
+
+    # Heatmap 2: Normalized Confusion Matrix
+    im2 = ax2.imshow(cm_norm, interpolation="nearest", cmap="coolwarm")
+    ax2.set_title("Normalized Confusion Matrix")
+    ax2.set_ylabel("True label")
+    ax2.set_xlabel("Predicted label")
+    ax2.set_xticks([0, 1])
+    ax2.set_yticks([0, 1])
+    plt.colorbar(im2, ax=ax2)
+
+    # Add annotations
+    for i in range(cm_norm.shape[0]):
+        for j in range(cm_norm.shape[1]):
+            ax2.text(
+                j, i, f"{cm_norm[i, j]:.3f}", ha="center", va="center", color="black"
+            )
+
+    plt.savefig(cm_name)
+    plt.close(fig_cm)
