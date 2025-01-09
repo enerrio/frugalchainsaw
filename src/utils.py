@@ -92,13 +92,33 @@ def plot_stats(logfile: str, plot_name: str, cm_name: str) -> None:
     axes[1, 0].legend()
 
     # Plot precision
-    axes[1, 1].plot(epoch_df["epoch_train_precision"], label="Training Precision")
-    axes[1, 1].plot(epoch_df["epoch_val_precision"], label="Validation Precision")
+    axes[1, 1].plot(
+        epoch_df["epoch_train_precision"],
+        label="Training Precision",
+        linestyle="-",
+        color="blue",
+    )
+    axes[1, 1].plot(
+        epoch_df["epoch_val_precision"],
+        label="Validation Precision",
+        linestyle="--",
+        color="blue",
+    )
     axes[1, 1].set_title("Model Precision")
 
     # Plot recall
-    axes[1, 1].plot(epoch_df["epoch_train_recall"], label="Training Recall")
-    axes[1, 1].plot(epoch_df["epoch_val_recall"], label="Validation Recall")
+    axes[1, 1].plot(
+        epoch_df["epoch_train_recall"],
+        label="Training Recall",
+        linestyle="-",
+        color="orange",
+    )
+    axes[1, 1].plot(
+        epoch_df["epoch_val_recall"],
+        label="Validation Recall",
+        linestyle="--",
+        color="orange",
+    )
     axes[1, 1].set_title("Model Recall + Precision")
     axes[1, 1].set_xlabel("Epoch")
     axes[1, 1].set_ylabel("Score")
