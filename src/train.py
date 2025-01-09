@@ -72,6 +72,7 @@ def compute_metrics_from_logits(
     """Calculate TP, FP, FN, and correct predictions from logits and labels."""
     preds = jax.nn.sigmoid(logits)
     preds_bin = (preds >= 0.5).astype(jnp.float32)
+    preds_bin = preds_bin.squeeze(axis=-1)
     y_bin = labels.astype(jnp.float32)
 
     tp = jnp.sum((preds_bin == 1) & (y_bin == 1)).item()
@@ -160,7 +161,7 @@ def train(
                 )
 
             epoch_loss /= len(train_dataloader)
-            epoch_accuracy = float(total_correct / total_samples)
+            epoch_accuracy = float(total_correct / total_samples) * 100.
             epoch_precision = total_tp / (total_tp + total_fp + 1e-9)
             epoch_recall = total_tp / (total_tp + total_fn + 1e-9)
 
@@ -186,7 +187,7 @@ def train(
 
             # Average and store loss
             val_loss = (val_loss / len(val_dataloader)).item()
-            val_accuracy = float(val_correct / val_total_samples)
+            val_accuracy = float(val_correct / val_total_samples) * 100.
             val_precision = val_tp / (val_tp + val_fp + 1e-9)
             val_recall = val_tp / (val_tp + val_fn + 1e-9)
 

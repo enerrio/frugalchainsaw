@@ -10,6 +10,7 @@ from rich.progress import (
     TaskProgressColumn,
     Column,
 )
+# from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 from src.model import Network
 
@@ -106,3 +107,18 @@ def plot_stats(logfile: str, plot_name: str) -> None:
 
     plt.tight_layout()
     plt.savefig(plot_name)
+
+    plt.close(fig)
+
+    # Create confusion matrix
+    # Adjust columns to match your log (e.g. 'epoch_val_labels', 'epoch_val_preds')
+    # y_true = epoch_df["epoch_val_labels"]
+    # y_pred = epoch_df["epoch_val_preds"]
+    # cm = confusion_matrix(y_true, y_pred)
+
+    # disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    # fig_cm, ax_cm = plt.subplots(figsize=(8, 6))
+    # disp.plot(ax=ax_cm)
+    # ax_cm.set_title("Confusion Matrix")
+    # plt.savefig(cm_name)
+    # plt.close(fig_cm)
