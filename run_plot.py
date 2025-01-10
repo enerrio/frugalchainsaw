@@ -10,7 +10,7 @@ from src.utils import plot_stats
 class PlotConfig:
     """Plot config."""
 
-    # Directory to save results
+    # Directory to store experiment results
     results_dir: Path = Path("results")
     # Experiment name
     exp_name: Path = Path("default_exp")

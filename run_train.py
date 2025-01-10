@@ -54,7 +54,7 @@ class TrainConfig:
     dtype: str = "float32"
     # How often to save the model to disk
     checkpoint_freq: int = 5
-    # Directory to save results
+    # Directory to store experiment results
     results_dir: Path = Path("results")
     # Experiment name
     exp_name: Path = Path("default_exp")
