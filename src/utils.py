@@ -45,7 +45,7 @@ def configure_pbar() -> tuple[Progress, Progress]:
         TimeElapsedColumn(),
         expand=True,
     )
-    val_pbar = Progress(
+    eval_pbar = Progress(
         TextColumn(
             "[progress.description]{task.description}", table_column=Column(ratio=1)
         ),
@@ -58,7 +58,7 @@ def configure_pbar() -> tuple[Progress, Progress]:
         TimeElapsedColumn(),
         expand=True,
     )
-    return main_pbar, val_pbar
+    return main_pbar, eval_pbar
 
 
 def read_log_file(logfile: str) -> tuple[pd.DataFrame, pd.DataFrame]:

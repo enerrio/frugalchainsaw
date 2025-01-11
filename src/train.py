@@ -98,16 +98,16 @@ def train(
     """Train the model."""
     opt_state = optim.init(eqx.filter(model, eqx.is_array))
 
-    main_pbar, val_pbar = configure_pbar()
+    main_pbar, eval_pbar = configure_pbar()
     panel = Panel(
-        Group(main_pbar, val_pbar),
+        Group(main_pbar, eval_pbar),
         title="Training Model",
         style="gold1",
     )
 
     with Live(panel):
         main_task = main_pbar.add_task("[red]Training model...", total=num_epochs)
-        val_task = val_pbar.add_task(
+        val_task = eval_pbar.add_task(
             "[magenta1]Evaluating model on validation set...",
             total=len(val_dataloader),
             visible=False,
@@ -161,7 +161,7 @@ def train(
 
             main_pbar.update(main_task, advance=1)
             # validation phase
-            val_pbar.update(val_task, visible=True)
+            eval_pbar.update(val_task, visible=True)
             val_loss = 0.0
             val_total_samples = 0
             val_tp = val_fp = val_fn = val_tn = val_correct = 0
@@ -177,8 +177,8 @@ def train(
                 val_tn += tn
                 val_correct += correct
                 val_total_samples += x_val.shape[0]
-                val_pbar.update(val_task, advance=1)
-            val_pbar.reset(val_task, visible=False)
+                eval_pbar.update(val_task, advance=1)
+            eval_pbar.reset(val_task, visible=False)
 
             # Average and store loss
             val_loss = (val_loss / len(val_dataloader)).item()
