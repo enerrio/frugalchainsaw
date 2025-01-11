@@ -31,7 +31,7 @@ def load_checkpoint(
 
 
 def configure_pbar() -> Progress:
-    """Setup rich progress bar for monitoring training."""
+    """Setup rich progress bar to monitor a training run."""
     main_pbar = Progress(
         TextColumn(
             "[progress.description]{task.description}", table_column=Column(ratio=1)
