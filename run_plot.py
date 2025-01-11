@@ -32,7 +32,3 @@ def main(args=None) -> None:
     plot_stats(logfile, plot_name, cm_name)
     print(f"Plot saved to {plot_name}")
     print(f"Confusion matrix saved to {cm_name}")
-
-
-if __name__ == "__main__":
-    main()

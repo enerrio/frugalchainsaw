@@ -151,7 +151,3 @@ def main(args=None):
     logger.info("Complete!")
     save_checkpoint(f"{ckpt_dir}-final.eqx", model)
     logger.info(f"Final model saved to disk: {ckpt_dir}-final.eqx")
-
-
-if __name__ == "__main__":
-    main()
