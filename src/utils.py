@@ -30,7 +30,7 @@ def load_checkpoint(
         return eqx.tree_deserialise_leaves(f, skeleton)
 
 
-def configure_pbar() -> Progress:
+def configure_pbar() -> tuple[Progress, Progress]:
     """Setup rich progress bar to monitor a training run."""
     main_pbar = Progress(
         TextColumn(
@@ -45,7 +45,20 @@ def configure_pbar() -> Progress:
         TimeElapsedColumn(),
         expand=True,
     )
-    return main_pbar
+    val_pbar = Progress(
+        TextColumn(
+            "[progress.description]{task.description}", table_column=Column(ratio=1)
+        ),
+        TextColumn(
+            "{task.completed:,} of [underline]{task.total:,}[/underline] batches completed"
+        ),
+        TextColumn("•"),
+        BarColumn(bar_width=None, table_column=Column(ratio=2)),
+        TaskProgressColumn(text_format="[progress.percentage]{task.percentage:>3.1f}%"),
+        TimeElapsedColumn(),
+        expand=True,
+    )
+    return main_pbar, val_pbar
 
 
 def read_log_file(logfile: str) -> tuple[pd.DataFrame, pd.DataFrame]:
