@@ -36,9 +36,14 @@ To plot results:
 python entry_point.py plot --exp_name=baseline
 ```
 
+To evaluate on test set:
+```bash
+python entry_point.py eval --config_path=configs/baseline.yaml
+```
+
 To run a benchmarking script:
 ```bash
-python scripts/benchmark.py --layer_dims 1 32 64 --kernel_size 3 --epochs 10 --dtype float32 --batch_size 32
+python entry_point.py benchmark --config_path=configs/baseline.yaml
 ```
 
 To download all dependencies and preprocess data on a new machine:
@@ -78,3 +83,17 @@ TODO:
 - [X] create script `prep_data.py` that downloads and preprocesses data and saves to numpy arrays in data/
 - [X] drop 0-length arrays in test set after downsampling
 - [ ] try applying normalization per frequency bin
+- [ ] fix estimated train time in benchmark script
+- [ ] fix progress bar name. should say batches, not epochs
+- [ ] write evaluate script to evaluate model on test set
+- [ ] fix baseline - loss should go down
+- [ ] use code carbon to estimate hardware energy consumption
+- [ ] train on float16 baseline (10 epochs)
+- [ ] train on bfloat16 baseline (10 epochs)
+- [ ] train on deep baseline (10 epochs)
+- [ ] train on medium baseline w/ weight decay (50 epochs)
+- [ ] train on longer baseline (100 epochs)
+- [ ] read those papers
+- [ ] model optimization in tensorflow link
+- [ ] quantize model and measure on test set
+- [ ] 

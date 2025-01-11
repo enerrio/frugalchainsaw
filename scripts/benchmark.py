@@ -3,17 +3,18 @@ import sys
 import math
 import time
 import psutil
-import argparse
 import jax
 import jax.numpy as jnp
 import jax.random as jr
 import equinox as eqx
+import pyrallis
 import optax
-from jaxtyping import Array, Int, PyTree, Key
+from jaxtyping import Array, Float, PyTree, Key
 from rich import print
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from run_train import TrainConfig
 from src.model import Network
 from src.dataset import load_data
 from src.train import forward_pass
@@ -23,8 +24,8 @@ def measure_runtime(
     model: eqx.Module,
     optim: optax.GradientTransformation,
     opt_state: PyTree,
-    x: Int[Array, "batch 1 mels frames"],
-    y: Int[Array, "batch 1 mels frames"],
+    x: Float[Array, "batch 1 mels frames"],
+    y: Float[Array, " batch"],
     keys: Key[Array, " batch"],
     jit: bool = True,
     num_runs: int = 5,
@@ -123,29 +124,20 @@ def get_memory_usage() -> float:
 
 
 def main(args=None) -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--layer_dims",
-        type=int,
-        required=True,
-        nargs="+",
-        help="List of layer dimensions",
-    )
-    parser.add_argument("--kernel_size", type=int, required=True)
-    parser.add_argument("--epochs", type=int, required=True)
-    parser.add_argument("--dtype", type=str, default="float32", required=True)
-    parser.add_argument("--batch_size", type=int, default=32, required=True)
-    args = parser.parse_args(args)
+    # If arguments were provided, replace sys.argv so Pyrallis sees them
+    if args is not None and len(args) > 0:
+        sys.argv = [sys.argv[0]] + args
 
-    train_dataloader = load_data("data", "train", args.batch_size)
-    val_dataloader = load_data("data", "val", args.batch_size)
-    print(f"Batch size: {args.batch_size}")
+    cfg = pyrallis.parse(config_class=TrainConfig)
+    train_dataloader = load_data("data", "train", cfg.batch_size)
+    val_dataloader = load_data("data", "val", cfg.batch_size)
+    print(f"Batch size: {cfg.batch_size}")
     print(f"Number of batches in train dataloader: {len(train_dataloader):,}")
     print(f"Number of batches in val dataloader: {len(val_dataloader):,}")
 
     key = jr.key(21)
     model_key, train_key = jr.split(key)
-    model = Network(args.layer_dims, args.kernel_size, model_key)
+    model = Network(cfg.layer_dims, cfg.kernel_size, model_key)
 
     optim = optax.adamw(learning_rate=0.0004, weight_decay=0.1)
     opt_state = optim.init(eqx.filter(model, eqx.is_array))
@@ -159,6 +151,7 @@ def main(args=None) -> None:
     key, *sample_keys = jr.split(train_key, train_dataloader.batch_size + 1)
     sample_keys = jnp.array(sample_keys)
     x_sample, y_sample = next(iter(train_dataloader))
+    x_sample, y_sample = x_sample.astype(cfg.dtype), y_sample.astype(cfg.dtype)
     print(f"Input shape: {x_sample.shape}")
     print(f"Target shape: {y_sample.shape}")
 
@@ -174,13 +167,13 @@ def main(args=None) -> None:
     speedup = runtime_no_jit / runtime_jit if runtime_jit > 0 else float("inf")
     print(f"Speedup (JIT / Non-JIT): {speedup:.2f}x")
     print(
-        f"Estimated training time (JIT-compiled; {args.epochs} epochs): {runtime_jit * args.epochs / 60:.3f} minutes"
+        f"Estimated training time (JIT-compiled; {cfg.epochs} epochs): {runtime_jit * cfg.epochs / 60:.3f} minutes"
     )
 
     # 2. Memory Usage
     print("\n[bold green]2. Memory Usage Estimation[/bold green]")
     estimated_memory_mb = estimate_memory_usage(
-        model, args.batch_size, x_sample.shape, dtype=args.dtype
+        model, cfg.batch_size, x_sample.shape, dtype=cfg.dtype
     )
     estimated_memory_gb = estimated_memory_mb / 1024
     print(
@@ -204,7 +197,7 @@ def main(args=None) -> None:
     flops = compiled.cost_analysis()[0]["flops"]
     gflops = flops / 1e9
     tflops = flops / 1e12
-    tflops_training = tflops * args.epochs * len(train_dataloader) * 2
+    tflops_training = tflops * cfg.epochs * len(train_dataloader) * 2
     print("\n[bold green]3. FLOPs Estimation[/bold green]")
     print(f"Estimated FLOPs per forward pass: {gflops:.3f} GFLOPs")
     print(
