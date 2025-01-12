@@ -10,6 +10,7 @@ import jax
 import jax.random as jr
 import optax
 import equinox as eqx
+import torch
 import pyrallis
 
 from src.dataset import load_data
@@ -80,6 +81,7 @@ def main(args=None):
 
     train_dataloader = load_data("data", "train", cfg.batch_size)
     val_dataloader = load_data("data", "val", cfg.batch_size)
+    torch.manual_seed(cfg.seed)
     logger.info(f"Batch size: {cfg.batch_size}")
     logger.info(f"Number of batches in train dataloader: {len(train_dataloader)}")
     logger.info(f"Number of batches in val dataloader: {len(val_dataloader)}")
@@ -147,7 +149,7 @@ def main(args=None):
         checkpoint_name=ckpt_dir,
         dtype=cfg.dtype,
     )
-    logger.info(f"Total training time: {time.time()-start:.2f} seconds.")
+    logger.info(f"Total training time: {(time.time()-start) / 60:.2f} minutes.")
     logger.info("Complete!")
     save_checkpoint(f"{ckpt_dir}-final.eqx", model)
     logger.info(f"Final model saved to disk: {ckpt_dir}-final.eqx")
