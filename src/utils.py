@@ -76,6 +76,45 @@ def read_log_file(logfile: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     return step_df, epoch_df
 
 
+def plot_confusion_matrix(cm: np.ndarray, cm_name: str) -> None:
+    """Plots a confusion matrix."""
+    fig_cm, (ax1, ax2) = plt.subplots(1, 2, sharex=True, figsize=(12, 5))
+
+    im1 = ax1.imshow(cm, interpolation="nearest", cmap="coolwarm")
+    ax1.set_title("Confusion Matrix")
+    ax1.set_ylabel("True label")
+    ax1.set_xlabel("Predicted label")
+    ax1.set_xticks([0, 1])
+    ax1.set_yticks([0, 1])
+    plt.colorbar(im1, ax=ax1)
+    # Add annotations
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax1.text(j, i, f"{cm[i, j]:d}", ha="center", va="center", color="black")
+
+    # Normalize confusion matrix
+    cm_norm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
+
+    # Heatmap 2: Normalized Confusion Matrix
+    im2 = ax2.imshow(cm_norm, interpolation="nearest", cmap="coolwarm")
+    ax2.set_title("Normalized Confusion Matrix")
+    ax2.set_ylabel("True label")
+    ax2.set_xlabel("Predicted label")
+    ax2.set_xticks([0, 1])
+    ax2.set_yticks([0, 1])
+    plt.colorbar(im2, ax=ax2)
+
+    # Add annotations
+    for i in range(cm_norm.shape[0]):
+        for j in range(cm_norm.shape[1]):
+            ax2.text(
+                j, i, f"{cm_norm[i, j]:.3f}", ha="center", va="center", color="black"
+            )
+
+    plt.savefig(cm_name)
+    plt.close(fig_cm)
+
+
 def plot_stats(logfile: str, plot_name: str, cm_name: str) -> None:
     """Plots training stats."""
     step_df, epoch_df = read_log_file(logfile)
@@ -156,39 +195,4 @@ def plot_stats(logfile: str, plot_name: str, cm_name: str) -> None:
         ],
         dtype=int,
     )
-
-    fig_cm, (ax1, ax2) = plt.subplots(1, 2, sharex=True, figsize=(12, 5))
-
-    im1 = ax1.imshow(cm, interpolation="nearest", cmap="coolwarm")
-    ax1.set_title("Confusion Matrix")
-    ax1.set_ylabel("True label")
-    ax1.set_xlabel("Predicted label")
-    ax1.set_xticks([0, 1])
-    ax1.set_yticks([0, 1])
-    plt.colorbar(im1, ax=ax1)
-    # Add annotations
-    for i in range(cm.shape[0]):
-        for j in range(cm.shape[1]):
-            ax1.text(j, i, f"{cm[i, j]:d}", ha="center", va="center", color="black")
-
-    # Normalize confusion matrix
-    cm_norm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
-
-    # Heatmap 2: Normalized Confusion Matrix
-    im2 = ax2.imshow(cm_norm, interpolation="nearest", cmap="coolwarm")
-    ax2.set_title("Normalized Confusion Matrix")
-    ax2.set_ylabel("True label")
-    ax2.set_xlabel("Predicted label")
-    ax2.set_xticks([0, 1])
-    ax2.set_yticks([0, 1])
-    plt.colorbar(im2, ax=ax2)
-
-    # Add annotations
-    for i in range(cm_norm.shape[0]):
-        for j in range(cm_norm.shape[1]):
-            ax2.text(
-                j, i, f"{cm_norm[i, j]:.3f}", ha="center", va="center", color="black"
-            )
-
-    plt.savefig(cm_name)
-    plt.close(fig_cm)
+    plot_confusion_matrix(cm, cm_name)
