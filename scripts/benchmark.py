@@ -30,7 +30,7 @@ def measure_runtime(
     jit: bool = True,
     num_runs: int = 5,
 ) -> float:
-    """Measures the average runtime of the model's forward pass.
+    """Measures the average runtime of the model's forward + backward pass.
 
     Args:
         model (eqx.Module): The Network instance.
@@ -166,8 +166,10 @@ def main(args=None) -> None:
     print(f"Average runtime (Non-JIT): {runtime_no_jit * 1e3:,.3f} ms")
     speedup = runtime_no_jit / runtime_jit if runtime_jit > 0 else float("inf")
     print(f"Speedup (JIT / Non-JIT): {speedup:.2f}x")
+    estimated_train_time = runtime_jit * len(train_dataloader) * cfg.epochs / 60
+    estimated_train_time += runtime_jit * len(val_dataloader) * cfg.epochs / 60
     print(
-        f"Estimated training time (JIT-compiled; {cfg.epochs} epochs): {runtime_jit * cfg.epochs / 60:.3f} minutes"
+        f"Estimated training time (JIT-compiled; {cfg.epochs} epochs): {estimated_train_time:.3f} minutes"
     )
 
     # 2. Memory Usage
@@ -203,7 +205,3 @@ def main(args=None) -> None:
     print(
         f"Estimated total FLOPs for training: {flops:.1e} FLOPS ({tflops_training:.3f} TFLOPs)"
     )
-
-
-if __name__ == "__main__":
-    main()
