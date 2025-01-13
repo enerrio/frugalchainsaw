@@ -25,7 +25,7 @@ def main(args=None):
 
     model_path = glob(f"{cfg.exp_dir}/*final.eqx")[0]
     print(f"Loading final model checkpoint from: {model_path}")
-    model = load_checkpoint(model_path, cfg.layer_dims, cfg.kernel_size)
+    model, state = load_checkpoint(model_path, cfg.layer_dims, cfg.kernel_size)
     # TODO: Convert to dtype??
 
     test_loss = 0.0
@@ -49,7 +49,7 @@ def main(args=None):
         )
         for x_test, y_test in test_dataloader:
             x_test, y_test = x_test.astype(cfg.dtype), y_test.astype(cfg.dtype)
-            loss, logits = validate_step(inference_model, x_test, y_test)
+            loss, logits = validate_step(inference_model, x_test, y_test, state)
             test_loss += loss
             tp, fp, fn, tn, correct = compute_metrics_from_logits(logits, y_test)
             test_tp += tp

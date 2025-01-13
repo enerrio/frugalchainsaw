@@ -15,19 +15,20 @@ import matplotlib.pyplot as plt
 from src.model import Network
 
 
-def save_checkpoint(filename: str, model: eqx.Module) -> None:
+def save_checkpoint(filename: str, model: eqx.Module, state: eqx.nn.State) -> None:
     """Save model to disk."""
     with open(filename, "wb") as f:
-        eqx.tree_serialise_leaves(f, model)
+        eqx.tree_serialise_leaves(f, (model, state))
 
 
 def load_checkpoint(
     filename: str, layer_dims: list[int], kernel_size: int
-) -> eqx.Module:
+) -> tuple[eqx.Module, eqx.nn.State]:
     """Load saved model."""
-    skeleton = Network(layer_dims, kernel_size, jr.key(21))
+    skeleton, state = eqx.nn.make_with_state(Network)(layer_dims, kernel_size, jr.key(21))
     with open(filename, "rb") as f:
-        return eqx.tree_deserialise_leaves(f, skeleton)
+        model, state = eqx.tree_deserialise_leaves(f, (skeleton, state))
+    return model, state
 
 
 def configure_pbar() -> tuple[Progress, Progress]:

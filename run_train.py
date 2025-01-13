@@ -89,12 +89,13 @@ def main(args=None):
     key = jr.key(cfg.seed)
     logger.info(f"Creating model with dype: {cfg.dtype}")
     model_key, train_key = jr.split(key)
-    model = Network(cfg.layer_dims, cfg.kernel_size, model_key)
+    model, state = eqx.nn.make_with_state(Network)(cfg.layer_dims, cfg.kernel_size, model_key)
     model = reinit_model_params(model, cfg.dtype, model_key)
     # model_str = eqx.tree_pformat(model)
     # print(model_str)
 
     # Calculate initial loss
+    # import jax.numpy as jnp
     # initial_loss = -jnp.log(1.0 / 2.0)
     # logger.info(f"Initial loss should be around: {initial_loss:.3f}")
     # key, *sample_keys = jr.split(train_key, train_dataloader.batch_size + 1)
@@ -110,12 +111,22 @@ def main(args=None):
     # logger.info(
     #     f"Logits mean: {logits_mean:.3f}, std: {logits_std:.3f}, dtype: {logits.dtype}"
     # )
+    # probs = jax.nn.sigmoid(logits)
+    # logger.info("Initial prediction stats:")
+    # logger.info(f"Mean: {jnp.mean(probs):.3f}")
+    # logger.info(f"Std: {jnp.std(probs):.3f}")
+    # logger.info(f"Min: {jnp.min(probs):.3f}")
+    # logger.info(f"Max: {jnp.max(probs):.3f}")
     # logger.info(f"Actual initial loss is: {loss:.3f}")
     # logger.info(f"> conv2d weight dtype: {model.layers[0].weight.dtype}")
-    # logger.info(f"> conv2d ln bias dtype: {model.layers[0].bias.dtype}")
+    # logger.info(f"> conv2d bias dtype: {model.layers[0].bias.dtype}")
+    # logger.info(f"> conv2d weight mean/std: {model.layers[0].weight.mean(), model.layers[0].weight.std()}")
+    # logger.info(f"> conv2d bias mean/std: {model.layers[0].bias.mean(), model.layers[0].bias.std()}")
     # logger.info(f"> conv2d weight dtype: {model.layers[-1].weight.dtype}")
-    # logger.info(f"> conv2d ln bias dtype: {model.layers[-1].bias.dtype}")
+    # logger.info(f"> conv2d bias dtype: {model.layers[-1].bias.dtype}")
     # logger.info(f"> out_layer dtype: {model.out_layer.weight.dtype}")
+    # logger.info(f"> out_layer weight mean/std: {model.out_layer.weight.mean(), model.out_layer.weight.std()}")
+    # logger.info(f"> out_layer bias mean/std: {model.out_layer.bias.mean(), model.out_layer.bias.std()}")
     # sys.exit()
 
     end_value = cfg.learning_rate * cfg.decay_percentage
@@ -138,8 +149,9 @@ def main(args=None):
 
     logger.info("Training...")
     start = time.time()
-    model = train(
+    model, state = train(
         model=model,
+        state=state,
         optim=optim,
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
@@ -151,5 +163,5 @@ def main(args=None):
     )
     logger.info(f"Total training time: {(time.time()-start) / 60:.2f} minutes.")
     logger.info("Complete!")
-    save_checkpoint(f"{ckpt_dir}-final.eqx", model)
+    save_checkpoint(f"{ckpt_dir}-final.eqx", model, state)
     logger.info(f"Final model saved to disk: {ckpt_dir}-final.eqx")

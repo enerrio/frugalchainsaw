@@ -21,20 +21,22 @@ def forward_pass(
     model: eqx.Module,
     x: Float[Array, "batch 1 mels frames"],
     y: Float[Array, " batch"],
+    state: eqx.nn.State,
     keys: Key[Array, " batch"],
-) -> tuple[Scalar, Float[Array, "batch 1"]]:
+) -> tuple[Scalar, tuple[Float[Array, "batch 1"], eqx.nn.State]]:
     """Forward pass of model and compute loss."""
-    logits = jax.vmap(model, in_axes=(0, None, 0))(x, False, keys)
+    logits, state = jax.vmap(model, axis_name="batch", in_axes=(0, None, None, 0), out_axes=(0, None))(x, False, state, keys)
     loss = optax.losses.sigmoid_binary_cross_entropy(logits, y).mean()
-    return loss, logits
+    return loss, (logits, state)
 
 
 def validation_forward_pass(
     model: eqx.Module,
     x: Float[Array, "batch 1 mels frames"],
     y: Float[Array, " batch"],
+    state: eqx.nn.State,
 ) -> tuple[Scalar, Float[Array, "batch 1"]]:
-    logits = jax.vmap(model, in_axes=(0, None, None))(x, True, None)
+    logits, _ = jax.vmap(model, axis_name="batch", in_axes=(0, None, None, None), out_axes=(0, None))(x, True, state, None)
     loss = optax.losses.sigmoid_binary_cross_entropy(logits, y).mean()
     return loss, logits
 
@@ -47,14 +49,15 @@ def train_step(
     opt_state: PyTree,
     x: Float[Array, "batch 1 mels frames"],
     y: Float[Array, " batch"],
+    state: eqx.nn.State,
     keys: Key[Array, " batch"],
-) -> tuple[eqx.Module, PyTree, Scalar, Float[Array, "batch 1"], Scalar]:
+) -> tuple[eqx.Module, PyTree, Scalar, Float[Array, "batch 1"], Scalar, eqx.nn.State]:
     """Single training step for a batch of data. Forward pass, compute loss/grads, update weights."""
-    (loss, logits), grads = forward_pass(model, x, y, keys)
+    (loss, (logits, state)), grads = forward_pass(model, x, y, state, keys)
     updates, opt_state = optim.update(grads, opt_state, eqx.filter(model, eqx.is_array))
     model = eqx.apply_updates(model, updates)
     grad_norm = optax.tree_utils.tree_l2_norm(grads)
-    return model, opt_state, loss, logits, grad_norm
+    return model, opt_state, loss, logits, grad_norm, state
 
 
 @eqx.filter_jit
@@ -62,8 +65,9 @@ def validate_step(
     inference_model: eqx.Module,
     x: Float[Array, "batch 1 mels frames"],
     y: Float[Array, " batch"],
+    state: eqx.nn.State,
 ) -> tuple[Scalar, Float[Array, "batch 1"]]:
-    loss, logits = validation_forward_pass(inference_model, x, y)
+    loss, logits = validation_forward_pass(inference_model, x, y, state)
     return loss, logits
 
 
@@ -86,6 +90,7 @@ def compute_metrics_from_logits(
 
 def train(
     model: eqx.Module,
+    state: eqx.nn.State,
     optim: optax.GradientTransformation,
     train_dataloader: DataLoader,
     val_dataloader: DataLoader,
@@ -94,7 +99,7 @@ def train(
     checkpoint_freq: int,
     checkpoint_name: str,
     dtype: str,
-) -> eqx.Module:
+) -> tuple[eqx.Module, eqx.nn.State]:
     """Train the model."""
     opt_state = optim.init(eqx.filter(model, eqx.is_array))
 
@@ -123,8 +128,8 @@ def train(
                 # train phase
                 key, *subkeys = jr.split(key, len(x_batch) + 1)
                 subkeys = jnp.array(subkeys)
-                model, opt_state, loss, logits, grad_norm = train_step(
-                    model, optim, opt_state, x_batch, y_batch, subkeys
+                model, opt_state, loss, logits, grad_norm, state = train_step(
+                    model, optim, opt_state, x_batch, y_batch, state, subkeys
                 )
 
                 step_time = (time.time() - start) * 1e3
@@ -141,7 +146,7 @@ def train(
                 total_samples += x_batch.shape[0]
 
                 logger.info(
-                    f"Step [{i+1:07d}/{len(train_dataloader):07d}] | Train Loss: {loss:.4f} | lr: {lr:.6f} | Grad Norm: {grad_norm:.3f} | Step Time: {step_time:04.0f}ms",
+                    f"Step [{i + 1:07d}/{len(train_dataloader):07d}] | Train Loss: {loss:.4f} | lr: {lr:.6f} | Grad Norm: {grad_norm:.3f} | Step Time: {step_time:04.0f}ms",
                     extra={
                         "mode": "step",
                         "step": i + 1,
@@ -168,7 +173,7 @@ def train(
             inference_model = eqx.nn.inference_mode(model)
             for x_val, y_val in val_dataloader:
                 x_val, y_val = x_val.astype(dtype), y_val.astype(dtype)
-                loss, logits = validate_step(inference_model, x_val, y_val)
+                loss, logits = validate_step(inference_model, x_val, y_val, state)
                 val_loss += loss
                 tp, fp, fn, tn, correct = compute_metrics_from_logits(logits, y_val)
                 val_tp += tp
@@ -212,5 +217,5 @@ def train(
             if (epoch % checkpoint_freq) == 0:
                 ckpt_name = f"{checkpoint_name}-{epoch:03d}-chkpt.eqx"
                 logger.info(f"Checkpointing model to disk: {ckpt_name}")
-                save_checkpoint(ckpt_name, model)
-    return model
+                save_checkpoint(ckpt_name, model, state)
+    return model, state
