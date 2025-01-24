@@ -195,6 +195,9 @@ def main():
     # Normalize data to zero mean and unit variance
     mean = np.mean(X_train, axis=0)
     std = np.std(X_train, axis=0) + 1e-6  # Avoid division by zero
+    # Normalize data per frequency bin
+    # mean = X_train.mean(axis=(0, 2), keepdims=True)
+    # std = X_train.std(axis=(0, 2), keepdims=True) + 1e-6
 
     # Apply normalization
     X_train = (X_train - mean) / std
