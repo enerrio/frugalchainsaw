@@ -1,3 +1,4 @@
+import os
 import random
 from collections import defaultdict
 import numpy as np
@@ -211,6 +212,7 @@ def main():
     print(f"X_test shape: {X_test.shape} | mean: {np.mean(X_test):.3f} | std: {np.std(X_test):.3f}")
     print(f"y_test shape: {y_test.shape} | class distribution: {np.bincount(y_test)}")
 
+    os.makedirs("data", exist_ok=True)
     np.save("data/X_train.npy", X_train)
     np.save("data/y_train.npy", y_train)
     np.save("data/X_val.npy", X_val)
