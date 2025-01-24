@@ -19,4 +19,4 @@ conda activate $ENV_NAME
 conda env update --file environment.yml --name $ENV_NAME
 
 # 4. Run your data prep script
-python prep_data.py
+python scripts/prep_data.py
