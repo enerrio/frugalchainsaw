@@ -15,7 +15,7 @@ from rich import print
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from run_train import TrainConfig
-from src.model import Network
+from src.model import Network, reinit_model_params
 from src.dataset import load_data
 from src.train import forward_pass
 
@@ -26,6 +26,7 @@ def measure_runtime(
     opt_state: PyTree,
     x: Float[Array, "batch 1 mels frames"],
     y: Float[Array, " batch"],
+    state: eqx.nn.State,
     keys: Key[Array, " batch"],
     jit: bool = True,
     num_runs: int = 5,
@@ -46,9 +47,9 @@ def measure_runtime(
         float: Average runtime in seconds.
     """
 
-    def singlepass(model, optim, opt_state, x, y, keys):
+    def singlepass(model, optim, opt_state, x, y, state, keys):
         """Forward + backward pass of the model."""
-        (loss, _), grads = forward_pass(model, x, y, keys)
+        (loss, _), grads = forward_pass(model, x, y, state, keys)
         updates, opt_state = optim.update(
             grads, opt_state, eqx.filter(model, eqx.is_array)
         )
@@ -60,10 +61,10 @@ def measure_runtime(
 
     # Warm-up runs
     for _ in range(3):
-        singlepass(model, optim, opt_state, x, y, keys)
+        singlepass(model, optim, opt_state, x, y, state, keys)
     start = time.time()
     for _ in range(num_runs):
-        loss = singlepass(model, optim, opt_state, x, y, keys)
+        loss = singlepass(model, optim, opt_state, x, y, state, keys)
         loss.block_until_ready()
     end = time.time()
     avg_runtime = (end - start) / num_runs
@@ -137,16 +138,16 @@ def main(args=None) -> None:
 
     key = jr.key(21)
     model_key, train_key = jr.split(key)
-    model = Network(cfg.layer_dims, cfg.kernel_size, model_key)
+    model, state = eqx.nn.make_with_state(Network)(
+        cfg.layer_dims, cfg.fc_dim, cfg.kernel_size, model_key
+    )
+    model = reinit_model_params(model, cfg.dtype, model_key)
 
     optim = optax.adamw(learning_rate=0.0004, weight_decay=0.1)
     opt_state = optim.init(eqx.filter(model, eqx.is_array))
     leaves, _ = jax.tree.flatten(model)
     num_params = sum([leaf.size for leaf in leaves if eqx.is_array(leaf)])
     print(f"Total number of model parameters: {num_params:,}")
-    # model_str = eqx.tree_pformat(model)
-    # print(model_str)
-    # sys.exit()
 
     key, *sample_keys = jr.split(train_key, train_dataloader.batch_size + 1)
     sample_keys = jnp.array(sample_keys)
@@ -157,19 +158,23 @@ def main(args=None) -> None:
 
     print("\n[bold green]1. Runtime Benchmarking (forward+backward pass)[/bold green]")
     runtime_jit = measure_runtime(
-        model, optim, opt_state, x_sample, y_sample, sample_keys, jit=True
+        model, optim, opt_state, x_sample, y_sample, state, sample_keys, jit=True
     )
     print(f"Average runtime (JIT-compiled): {runtime_jit * 1e3:,.3f} ms")
     runtime_no_jit = measure_runtime(
-        model, optim, opt_state, x_sample, y_sample, sample_keys, jit=False
+        model, optim, opt_state, x_sample, y_sample, state, sample_keys, jit=False
     )
     print(f"Average runtime (Non-JIT): {runtime_no_jit * 1e3:,.3f} ms")
     speedup = runtime_no_jit / runtime_jit if runtime_jit > 0 else float("inf")
     print(f"Speedup (JIT / Non-JIT): {speedup:.2f}x")
+    # Add an empirical overhead factor (typically 3-7x depending on setup)
+    overhead_factor = 7.0  # For data loading, logging, checkpointing, etc.
     estimated_train_time = runtime_jit * len(train_dataloader) * cfg.epochs / 60
     estimated_train_time += runtime_jit * len(val_dataloader) * cfg.epochs / 60
+    estimated_train_time *= overhead_factor
     print(
         f"Estimated training time (JIT-compiled; {cfg.epochs} epochs): {estimated_train_time:.3f} minutes"
+        f" (includes {overhead_factor}x overhead factor)"
     )
 
     # 2. Memory Usage
@@ -183,7 +188,7 @@ def main(args=None) -> None:
     )
 
     # run forward and backward pass then get actual memory usage
-    forward_pass(model, x_sample, y_sample, sample_keys)
+    forward_pass(model, x_sample, y_sample, state, sample_keys)
     memory_usage_mb = get_memory_usage()
     memory_usage_gb = memory_usage_mb / 1024
     print(
@@ -191,10 +196,12 @@ def main(args=None) -> None:
     )
 
     # 3. FLOPs Estimation
-    def forward(x, inference, key):
-        return jax.vmap(model, in_axes=(0, None, 0))(x, inference, key)
+    def forward(x, inference, state, key):
+        return jax.vmap(
+            model, axis_name="batch", in_axes=(0, None, None, 0), out_axes=(0, None)
+        )(x, inference, state, key)
 
-    lowered = eqx.filter_jit(forward).lower(x_sample, False, sample_keys)
+    lowered = eqx.filter_jit(forward).lower(x_sample, False, state, sample_keys)
     compiled = lowered.compile().compiled
     flops = compiled.cost_analysis()[0]["flops"]
     gflops = flops / 1e9
