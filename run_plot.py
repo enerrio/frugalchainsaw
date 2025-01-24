@@ -1,23 +1,8 @@
 import sys
 from glob import glob
-from pathlib import Path
-from dataclasses import dataclass
 import pyrallis
+from run_train import TrainConfig
 from src.utils import plot_stats
-
-
-@dataclass
-class PlotConfig:
-    """Plot config."""
-
-    # Directory to store experiment results
-    results_dir: Path = Path("results")
-    # Experiment name
-    exp_name: Path = Path("default_exp")
-
-    @property
-    def exp_dir(self) -> Path:
-        return self.results_dir / self.exp_name
 
 
 def main(args=None) -> None:
@@ -25,7 +10,7 @@ def main(args=None) -> None:
     if args is not None and len(args) > 0:
         sys.argv = [sys.argv[0]] + args
 
-    cfg = pyrallis.parse(config_class=PlotConfig)
+    cfg = pyrallis.parse(config_class=TrainConfig)
     logfile = glob(f"{cfg.exp_dir}/*.jsonl")[0]
     plot_name = f"{cfg.exp_dir}/train_plot_{cfg.exp_name}.png"
     cm_name = f"{cfg.exp_dir}/train_cm_{cfg.exp_name}.png"
