@@ -33,7 +33,7 @@ python entry_point.py train --config_path=configs/baseline.yaml
 
 To plot results:
 ```bash
-python entry_point.py plot --exp_name=baseline
+python entry_point.py plot --config_path=configs/baseline.yaml
 ```
 
 To evaluate on test set:
@@ -84,9 +84,14 @@ TODO:
 - [X] drop 0-length arrays in test set after downsampling
 - [ ] try applying normalization per frequency bin
 - [ ] fix estimated train time in benchmark script
-- [ ] fix progress bar name. should say batches, not epochs
-- [ ] write evaluate script to evaluate model on test set
+  - [ ] 25/36 minutes for training. benchmark says 7 though
+- [X] fix progress bar name. should say batches, not epochs
+- [X] write evaluate script to evaluate model on test set
+- [X] evaluate script: add confusion matrix plot
 - [ ] fix baseline - loss should go down
+  - [ ] do a run and compare w/ old baseline. if same then get rid of new init/leaky relu
+  - [ ] try increasing model capacity
+  - [ ] try overfitting on a single batch
 - [ ] use code carbon to estimate hardware energy consumption
 - [ ] train on float16 baseline (10 epochs)
 - [ ] train on bfloat16 baseline (10 epochs)
