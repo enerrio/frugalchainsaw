@@ -25,7 +25,7 @@ def main(args=None):
 
     model_path = glob(f"{cfg.exp_dir}/*final.eqx")[0]
     print(f"Loading final model checkpoint from: {model_path}")
-    model, state = load_checkpoint(model_path, cfg.layer_dims, cfg.kernel_size)
+    model, state = load_checkpoint(model_path, cfg.layer_dims, cfg.fc_dim, cfg.kernel_size)
     # TODO: Convert to dtype??
 
     test_loss = 0.0

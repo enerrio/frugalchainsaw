@@ -20,8 +20,8 @@ def reinit_model_params(model: eqx.Module, dtype: str, key: PRNGKeyArray) -> eqx
     # Split keys for each category
     key, key_conv, key_out = jr.split(key, 3)
     # Increase std for conv layers based on input size
-    conv_std = 0.1
-    out_std = 0.1
+    conv_std = 0.2
+    out_std = 0.2
 
     # Conv layer weights
     is_conv_layer = lambda x: isinstance(x, eqx.nn.Conv2d)
@@ -34,14 +34,13 @@ def reinit_model_params(model: eqx.Module, dtype: str, key: PRNGKeyArray) -> eqx
     new_weights = [
         normal_init(k, s, dtype, 0.0, conv_std) for k, s in zip(w_keys, w_shapes)
     ]
-    # bias should be 0
-    # new_biases = [jnp.zeros(s, dtype=dtype) for s in b_shapes]
     new_biases = [jnp.full(s, 0.01, dtype=dtype) for s in b_shapes]
     # Initialize output layer separately
     out_w_shape = model.out_layer.weight.shape
     out_b_shape = model.out_layer.bias.shape
     new_out_weight = normal_init(key_out, out_w_shape, dtype, 0.0, out_std)
     new_out_bias = jnp.zeros(out_b_shape, dtype=dtype)
+    # new_out_bias = jnp.full(out_b_shape, -1.0, dtype=dtype)
 
     # Replace conv weights
     model = eqx.tree_at(
@@ -72,18 +71,27 @@ def reinit_model_params(model: eqx.Module, dtype: str, key: PRNGKeyArray) -> eqx
 class Network(eqx.Module):
     layers: list
     bn_layers: list
+    fc_layer: eqx.nn.Linear
     out_layer: eqx.nn.Linear
 
-    def __init__(self, layer_dims: list[int], kernel_size: int, key: PRNGKeyArray):
-        keys = jr.split(key, len(layer_dims))
+    def __init__(self, layer_dims: list[int], fc_dim: int, kernel_size: int, key: PRNGKeyArray):
+        keys = jr.split(key, len(layer_dims) + 1)
         self.layers = []
         self.bn_layers = []
         for i, (in_dim, out_dim) in enumerate(zip(layer_dims[:-1], layer_dims[1:])):
             self.layers.append(
-                eqx.nn.Conv2d(in_dim, out_dim, kernel_size=kernel_size, key=keys[i])
+                eqx.nn.Conv2d(
+                    in_dim,
+                    out_dim,
+                    kernel_size=kernel_size,
+                    stride=(1 if i == 0 else 2),
+                    padding=kernel_size // 2,
+                    key=keys[i],
+                )
             )
             self.bn_layers.append(eqx.nn.BatchNorm(out_dim, axis_name="batch"))
-        self.out_layer = eqx.nn.Linear(layer_dims[-1], 1, key=keys[-1])
+        self.fc_layer = eqx.nn.Linear(147456, fc_dim, key=keys[-2])
+        self.out_layer = eqx.nn.Linear(fc_dim, 1, key=keys[-1])
 
     def __call__(
         self,
@@ -95,9 +103,9 @@ class Network(eqx.Module):
         for layer, bn_layer in zip(self.layers, self.bn_layers):
             x = layer(x)
             x, state = bn_layer(x, state=state, inference=inference)
-            x = jax.nn.relu(x)
-            # x = jax.nn.leaky_relu(x)
-        # Global average pooling to compress (channels, height, width) -> (channels,)
-        x = jnp.mean(x, axis=(-2, -1))
+            x = jax.nn.leaky_relu(x)
+        x = x.flatten()
+        x = self.fc_layer(x)
+        x = jax.nn.leaky_relu(x)
         x = self.out_layer(x)
         return x, state

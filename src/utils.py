@@ -22,10 +22,10 @@ def save_checkpoint(filename: str, model: eqx.Module, state: eqx.nn.State) -> No
 
 
 def load_checkpoint(
-    filename: str, layer_dims: list[int], kernel_size: int
+    filename: str, layer_dims: list[int], fc_dim: int, kernel_size: int
 ) -> tuple[eqx.Module, eqx.nn.State]:
     """Load saved model."""
-    skeleton, state = eqx.nn.make_with_state(Network)(layer_dims, kernel_size, jr.key(21))
+    skeleton, state = eqx.nn.make_with_state(Network)(layer_dims, fc_dim, kernel_size, jr.key(21))
     with open(filename, "rb") as f:
         model, state = eqx.tree_deserialise_leaves(f, (skeleton, state))
     return model, state
