@@ -25,7 +25,9 @@ def forward_pass(
     keys: Key[Array, " batch"],
 ) -> tuple[Scalar, tuple[Float[Array, "batch 1"], eqx.nn.State]]:
     """Forward pass of model and compute loss."""
-    logits, state = jax.vmap(model, axis_name="batch", in_axes=(0, None, None, 0), out_axes=(0, None))(x, False, state, keys)
+    logits, state = jax.vmap(
+        model, axis_name="batch", in_axes=(0, None, None, 0), out_axes=(0, None)
+    )(x, False, state, keys)
     loss = optax.losses.sigmoid_binary_cross_entropy(logits, y).mean()
     return loss, (logits, state)
 
@@ -36,7 +38,9 @@ def validation_forward_pass(
     y: Float[Array, " batch"],
     state: eqx.nn.State,
 ) -> tuple[Scalar, Float[Array, "batch 1"]]:
-    logits, _ = jax.vmap(model, axis_name="batch", in_axes=(0, None, None, None), out_axes=(0, None))(x, True, state, None)
+    logits, _ = jax.vmap(
+        model, axis_name="batch", in_axes=(0, None, None, None), out_axes=(0, None)
+    )(x, True, state, None)
     loss = optax.losses.sigmoid_binary_cross_entropy(logits, y).mean()
     return loss, logits
 
