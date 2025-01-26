@@ -2,15 +2,15 @@ seed: 42
 epochs: 10
 batch_size: 32
 layer_dims: [1, 32, 64]
-# layer_dims: [1, 64, 128, 256]
-# layer_dims: [9088, 64, 32]
 fc_dim: 128
 kernel_size: 3
 learning_rate: 0.001
+scale_by_adam: false
 weight_decay: 0.
 warmup_percentage: 0.
 decay_percentage: 0.
 dtype: float32
 checkpoint_freq: 5
+normalization_mode: global
 results_dir: results
 exp_name: baseline
