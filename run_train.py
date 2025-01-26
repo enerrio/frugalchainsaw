@@ -21,13 +21,17 @@ from src.utils import save_checkpoint
 
 
 @partial(optax.inject_hyperparams, static_args="weight_decay")
-def create_optimizer(learning_rate, weight_decay):
-    return optax.chain(
+def create_optimizer(learning_rate, weight_decay, scale_by_adam=True):
+    chain = [
         # optax.clip_by_global_norm(1.0),
-        optax.scale_by_adam(),
-        optax.add_decayed_weights(weight_decay=weight_decay),
-        optax.scale_by_learning_rate(learning_rate=learning_rate),
-    )
+    ]
+    if scale_by_adam:
+        chain.append(optax.scale_by_adam())
+    if weight_decay > 0:
+        chain.append(optax.add_decayed_weights(weight_decay=weight_decay))
+    chain.append(optax.scale_by_learning_rate(learning_rate=learning_rate))
+    return optax.chain(*chain)
+
 
 
 @dataclass
@@ -41,10 +45,14 @@ class TrainConfig:
     batch_size: int = 32
     # Model layer sizes
     layer_dims: list[int] = field(default_factory=lambda: [1, 32, 64])
+    # Fully connected layer size
+    fc_dim: int = 128
     # Convolutional kernel size
     kernel_size: int = 3
     # Max learning rate
     learning_rate: float = 4e-4
+    # Whether to scale learning rate by Adam
+    scale_by_adam: bool = True
     # Optimizer weight decay
     weight_decay: float = 0.1
     # Fraction of total training step to warm up learning rate to learning_rate
@@ -55,6 +63,8 @@ class TrainConfig:
     dtype: str = "float32"
     # How often to save the model to disk
     checkpoint_freq: int = 5
+    # Data normalization mode (either global or binwise)
+    normalization_mode: str = "global"
     # Directory to store experiment results
     results_dir: Path = Path("results")
     # Experiment name
@@ -78,18 +88,22 @@ def main(args=None):
 
     ckpt_dir = os.path.join(cfg.exp_dir, f"model-{cfg.exp_name}")
     logger.info(f"Saving model checkpoints to {cfg.exp_dir}")
+    data_dir = "data" if cfg.normalization_mode == "global" else "data_binwise"
+    logger.info(f"Loading data from {data_dir}")
 
-    train_dataloader = load_data("data", "train", cfg.batch_size)
-    val_dataloader = load_data("data", "val", cfg.batch_size)
+    train_dataloader = load_data(data_dir, "train", cfg.batch_size)
+    val_dataloader = load_data(data_dir, "val", cfg.batch_size)
     torch.manual_seed(cfg.seed)
     logger.info(f"Batch size: {cfg.batch_size}")
     logger.info(f"Number of batches in train dataloader: {len(train_dataloader)}")
     logger.info(f"Number of batches in val dataloader: {len(val_dataloader)}")
 
     key = jr.key(cfg.seed)
-    logger.info(f"Creating model with dype: {cfg.dtype}")
+    logger.info(f"Creating model with dtype: {cfg.dtype}")
     model_key, train_key = jr.split(key)
-    model, state = eqx.nn.make_with_state(Network)(cfg.layer_dims, cfg.kernel_size, model_key)
+    model, state = eqx.nn.make_with_state(Network)(
+        cfg.layer_dims, cfg.fc_dim, cfg.kernel_size, model_key
+    )
     model = reinit_model_params(model, cfg.dtype, model_key)
     # model_str = eqx.tree_pformat(model)
     # print(model_str)
@@ -102,10 +116,10 @@ def main(args=None):
     # sample_keys = jnp.array(sample_keys)
     # x_sample, y_sample = next(iter(train_dataloader))
     # x_sample, y_sample = x_sample.astype(cfg.dtype), y_sample.astype(cfg.dtype)
-    # logits = jax.vmap(model, in_axes=(0, None, 0))(x_sample, False, sample_keys)
-    # loss = optax.losses.sigmoid_binary_cross_entropy(
-    #     logits, y_sample
-    # ).mean().item()
+    # logits, _ = jax.vmap(
+    #     model, axis_name="batch", in_axes=(0, None, None, 0), out_axes=(0, None)
+    # )(x_sample, False, state, sample_keys)
+    # loss = optax.losses.sigmoid_binary_cross_entropy(logits, y_sample).mean().item()
     # logits_mean = jnp.mean(logits).item()
     # logits_std = jnp.std(logits).item()
     # logger.info(
@@ -115,18 +129,25 @@ def main(args=None):
     # logger.info("Initial prediction stats:")
     # logger.info(f"Mean: {jnp.mean(probs):.3f}")
     # logger.info(f"Std: {jnp.std(probs):.3f}")
-    # logger.info(f"Min: {jnp.min(probs):.3f}")
-    # logger.info(f"Max: {jnp.max(probs):.3f}")
+    # logger.info(f"Min/Max: {jnp.min(probs):.3f}/{jnp.max(probs):.3f}")
     # logger.info(f"Actual initial loss is: {loss:.3f}")
     # logger.info(f"> conv2d weight dtype: {model.layers[0].weight.dtype}")
     # logger.info(f"> conv2d bias dtype: {model.layers[0].bias.dtype}")
-    # logger.info(f"> conv2d weight mean/std: {model.layers[0].weight.mean(), model.layers[0].weight.std()}")
-    # logger.info(f"> conv2d bias mean/std: {model.layers[0].bias.mean(), model.layers[0].bias.std()}")
+    # logger.info(
+    #     f"> conv2d weight mean/std: {model.layers[0].weight.mean(), model.layers[0].weight.std()}"
+    # )
+    # logger.info(
+    #     f"> conv2d bias mean/std: {model.layers[0].bias.mean(), model.layers[0].bias.std()}"
+    # )
     # logger.info(f"> conv2d weight dtype: {model.layers[-1].weight.dtype}")
     # logger.info(f"> conv2d bias dtype: {model.layers[-1].bias.dtype}")
     # logger.info(f"> out_layer dtype: {model.out_layer.weight.dtype}")
-    # logger.info(f"> out_layer weight mean/std: {model.out_layer.weight.mean(), model.out_layer.weight.std()}")
-    # logger.info(f"> out_layer bias mean/std: {model.out_layer.bias.mean(), model.out_layer.bias.std()}")
+    # logger.info(
+    #     f"> out_layer weight mean/std: {model.out_layer.weight.mean(), model.out_layer.weight.std()}"
+    # )
+    # logger.info(
+    #     f"> out_layer bias mean/std: {model.out_layer.bias.mean(), model.out_layer.bias.std()}"
+    # )
     # sys.exit()
 
     end_value = cfg.learning_rate * cfg.decay_percentage
@@ -134,6 +155,7 @@ def main(args=None):
     warmup_steps = int(total_steps * cfg.warmup_percentage)
     logger.info(f"Total training steps: {total_steps:,}")
     logger.info(f"Number of warmup steps: {warmup_steps}")
+    logger.info(f"Learning rate end value: {end_value:.6f}")
     lr_scheduler = optax.schedules.warmup_cosine_decay_schedule(
         init_value=0.0,
         peak_value=cfg.learning_rate,
@@ -141,7 +163,7 @@ def main(args=None):
         decay_steps=total_steps,
         end_value=end_value,
     )
-    optim = create_optimizer(lr_scheduler, cfg.weight_decay)
+    optim = create_optimizer(lr_scheduler, cfg.weight_decay, cfg.scale_by_adam)
 
     leaves, _ = jax.tree.flatten(model)
     num_params = sum([leaf.size for leaf in leaves if eqx.is_array(leaf)])
@@ -161,7 +183,7 @@ def main(args=None):
         checkpoint_name=ckpt_dir,
         dtype=cfg.dtype,
     )
-    logger.info(f"Total training time: {(time.time()-start) / 60:.2f} minutes.")
+    logger.info(f"Total training time: {(time.time() - start) / 60:.2f} minutes.")
     logger.info("Complete!")
     save_checkpoint(f"{ckpt_dir}-final.eqx", model, state)
     logger.info(f"Final model saved to disk: {ckpt_dir}-final.eqx")

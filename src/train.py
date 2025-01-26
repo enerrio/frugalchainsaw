@@ -150,7 +150,7 @@ def train(
                 total_samples += x_batch.shape[0]
 
                 logger.info(
-                    f"Step [{i + 1:07d}/{len(train_dataloader):07d}] | Train Loss: {loss:.4f} | lr: {lr:.6f} | Grad Norm: {grad_norm:.3f} | Step Time: {step_time:04.0f}ms",
+                    f"Step [{i + 1:04d}/{len(train_dataloader):04d}] | Train Loss: {loss:.4f} | lr: {lr:.6f} | Grad Norm: {grad_norm:.3f} | Step Time: {step_time:04.0f}ms",
                     extra={
                         "mode": "step",
                         "step": i + 1,
@@ -196,7 +196,7 @@ def train(
             val_recall = val_tp / (val_tp + val_fn + 1e-9)
 
             logger.info(
-                f"Epoch [{epoch:05d}/{num_epochs:05d}] "
+                f"Epoch [{epoch:04d}/{num_epochs:04d}] "
                 f"| Train Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.2f}%, Precision: {epoch_precision:.3f}, Recall: {epoch_recall:.3f} "
                 f"| Val Loss: {val_loss:.4f}, Accuracy: {val_accuracy:.2f}%, Precision: {val_precision:.3f}, Recall: {val_recall:.3f}",
                 extra={
