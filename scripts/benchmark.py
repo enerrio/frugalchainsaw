@@ -18,6 +18,7 @@ from run_train import TrainConfig
 from src.model import Network, reinit_model_params
 from src.dataset import load_data
 from src.train import forward_pass
+from src.utils import compute_fc_in_dim
 
 
 def measure_runtime(
@@ -130,16 +131,24 @@ def main(args=None) -> None:
         sys.argv = [sys.argv[0]] + args
 
     cfg = pyrallis.parse(config_class=TrainConfig)
-    train_dataloader = load_data("data", "train", cfg.batch_size)
-    val_dataloader = load_data("data", "val", cfg.batch_size)
+
+    data_dir = "data" if cfg.normalization_mode == "global" else "data_binwise"
+    train_dataloader = load_data(data_dir, "train", cfg.batch_size)
+    val_dataloader = load_data(data_dir, "val", cfg.batch_size)
     print(f"Batch size: {cfg.batch_size}")
     print(f"Number of batches in train dataloader: {len(train_dataloader):,}")
     print(f"Number of batches in val dataloader: {len(val_dataloader):,}")
 
     key = jr.key(21)
+    fc_in_dim = compute_fc_in_dim(
+        cfg.layer_dims,
+        cfg.kernel_size,
+        train_dataloader.dataset.features.shape[-2],
+        train_dataloader.dataset.features.shape[-1],
+    )
     model_key, train_key = jr.split(key)
     model, state = eqx.nn.make_with_state(Network)(
-        cfg.layer_dims, cfg.fc_dim, cfg.kernel_size, model_key
+        cfg.layer_dims, fc_in_dim, cfg.fc_out_dim, cfg.kernel_size, model_key
     )
     model = reinit_model_params(model, cfg.dtype, model_key)
 
@@ -203,7 +212,7 @@ def main(args=None) -> None:
 
     lowered = eqx.filter_jit(forward).lower(x_sample, False, state, sample_keys)
     compiled = lowered.compile().compiled
-    flops = compiled.cost_analysis()[0]["flops"]
+    flops = compiled.cost_analysis()["flops"]
     gflops = flops / 1e9
     tflops = flops / 1e12
     tflops_training = tflops * cfg.epochs * len(train_dataloader) * 2

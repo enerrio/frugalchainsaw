@@ -15,6 +15,19 @@ import matplotlib.pyplot as plt
 from src.model import Network
 
 
+def compute_fc_in_dim(
+    layer_dims: list[int], kernel_size: int, height: int, width: int
+) -> int:
+    """Calculate fc layer input dim based on conv block."""
+    padding = kernel_size // 2
+    for i, (in_ch, out_ch) in enumerate(zip(layer_dims[:-1], layer_dims[1:])):
+        stride = 1 if i == 0 else 2
+        height = (height + 2 * padding - kernel_size) // stride + 1
+        width = (width + 2 * padding - kernel_size) // stride + 1
+    final_out_channels = layer_dims[-1]
+    return height * width * final_out_channels
+
+
 def save_checkpoint(filename: str, model: eqx.Module, state: eqx.nn.State) -> None:
     """Save model to disk."""
     with open(filename, "wb") as f:
@@ -25,7 +38,9 @@ def load_checkpoint(
     filename: str, layer_dims: list[int], fc_dim: int, kernel_size: int
 ) -> tuple[eqx.Module, eqx.nn.State]:
     """Load saved model."""
-    skeleton, state = eqx.nn.make_with_state(Network)(layer_dims, fc_dim, kernel_size, jr.key(21))
+    skeleton, state = eqx.nn.make_with_state(Network)(
+        layer_dims, fc_dim, kernel_size, jr.key(21)
+    )
     with open(filename, "rb") as f:
         model, state = eqx.tree_deserialise_leaves(f, (skeleton, state))
     return model, state

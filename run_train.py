@@ -17,7 +17,7 @@ from src.dataset import load_data
 from src.train import train
 from src.logger import setup_logger
 from src.model import Network, reinit_model_params
-from src.utils import save_checkpoint
+from src.utils import save_checkpoint, compute_fc_in_dim
 
 
 @partial(optax.inject_hyperparams, static_args="weight_decay")
@@ -33,7 +33,6 @@ def create_optimizer(learning_rate, weight_decay, scale_by_adam=True):
     return optax.chain(*chain)
 
 
-
 @dataclass
 class TrainConfig:
     """Training config."""
@@ -45,8 +44,8 @@ class TrainConfig:
     batch_size: int = 32
     # Model layer sizes
     layer_dims: list[int] = field(default_factory=lambda: [1, 32, 64])
-    # Fully connected layer size
-    fc_dim: int = 128
+    # Fully connected layer output size
+    fc_out_dim: int = 128
     # Convolutional kernel size
     kernel_size: int = 3
     # Max learning rate
@@ -100,9 +99,15 @@ def main(args=None):
 
     key = jr.key(cfg.seed)
     logger.info(f"Creating model with dtype: {cfg.dtype}")
+    fc_in_dim = compute_fc_in_dim(
+        cfg.layer_dims,
+        cfg.kernel_size,
+        train_dataloader.dataset.features.shape[-2],
+        train_dataloader.dataset.features.shape[-1],
+    )
     model_key, train_key = jr.split(key)
     model, state = eqx.nn.make_with_state(Network)(
-        cfg.layer_dims, cfg.fc_dim, cfg.kernel_size, model_key
+        cfg.layer_dims, fc_in_dim, cfg.fc_out_dim, cfg.kernel_size, model_key
     )
     model = reinit_model_params(model, cfg.dtype, model_key)
     # model_str = eqx.tree_pformat(model)

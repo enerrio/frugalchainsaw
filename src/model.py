@@ -74,7 +74,14 @@ class Network(eqx.Module):
     fc_layer: eqx.nn.Linear
     out_layer: eqx.nn.Linear
 
-    def __init__(self, layer_dims: list[int], fc_dim: int, kernel_size: int, key: PRNGKeyArray):
+    def __init__(
+        self,
+        layer_dims: list[int],
+        fc_in_dim: int,
+        fc_out_dim: int,
+        kernel_size: int,
+        key: PRNGKeyArray,
+    ):
         keys = jr.split(key, len(layer_dims) + 1)
         self.layers = []
         self.bn_layers = []
@@ -90,8 +97,8 @@ class Network(eqx.Module):
                 )
             )
             self.bn_layers.append(eqx.nn.BatchNorm(out_dim, axis_name="batch"))
-        self.fc_layer = eqx.nn.Linear(147456, fc_dim, key=keys[-2])
-        self.out_layer = eqx.nn.Linear(fc_dim, 1, key=keys[-1])
+        self.fc_layer = eqx.nn.Linear(fc_in_dim, fc_out_dim, key=keys[-2])
+        self.out_layer = eqx.nn.Linear(fc_out_dim, 1, key=keys[-1])
 
     def __call__(
         self,
