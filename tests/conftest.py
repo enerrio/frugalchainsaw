@@ -11,10 +11,10 @@ class DummyModel(eqx.Module):
     # For example, we can store just one parameter: a bias term
     bias: jnp.ndarray
 
-    def __call__(self, x, inference, key):
+    def __call__(self, x, inference, state, key):
         # Simple linear forward pass for demonstration
         # shape of x: (batch, 1, mels, frames)
-        return x.mean() + self.bias
+        return x.mean() + self.bias, state
 
 
 @pytest.fixture

@@ -9,7 +9,7 @@ def test_forward_pass(dummy_model, dummy_data, key):
     """Test that forward_pass runs without error and returns a scalar."""
     x, y = dummy_data
     keys = jr.split(key, x.shape[0] + 1)[1:]
-    (loss, _), _ = forward_pass(dummy_model, x, y, jnp.array(keys))
+    (loss, _), _ = forward_pass(dummy_model, x, y, None, jnp.array(keys))
     # Expect a single scalar for the loss
     assert jnp.ndim(loss) == 0, "forward_pass should return a scalar value."
 
@@ -17,7 +17,7 @@ def test_forward_pass(dummy_model, dummy_data, key):
 def test_validation_forward_pass(dummy_model, dummy_data):
     """Test that validation_forward_pass returns a scalar."""
     x, y = dummy_data
-    loss, _ = validation_forward_pass(dummy_model, x, y)
+    loss, _ = validation_forward_pass(dummy_model, x, y, None)
     assert jnp.ndim(loss) == 0, "validation_forward_pass should return a scalar value."
 
 
@@ -35,8 +35,8 @@ def test_train_step(dummy_model, dummy_data, key):
     key, *subkeys = jr.split(key, len(x) + 1)
     subkeys = jnp.array(subkeys)
 
-    new_model, _, loss, _, grad_norm = train_step(
-        dummy_model, optim, opt_state, x, y, subkeys
+    new_model, _, loss, _, grad_norm, _ = train_step(
+        dummy_model, optim, opt_state, x, y, None, subkeys
     )
 
     # Check returned shapes/types
@@ -50,6 +50,6 @@ def test_train_step(dummy_model, dummy_data, key):
     param_after = new_model.bias
     # There's a chance an extremely small step won't show up in float32,
     # so just ensure they're not identical
-    assert not jnp.allclose(
-        param_before, param_after
-    ), "Model parameter(s) should update."
+    assert not jnp.allclose(param_before, param_after), (
+        "Model parameter(s) should update."
+    )

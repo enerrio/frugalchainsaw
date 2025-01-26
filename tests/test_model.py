@@ -2,6 +2,7 @@ import jax
 import jax.numpy as jnp
 import equinox as eqx
 from src.model import Network, normal_init, reinit_model_params
+from src.utils import compute_fc_in_dim
 
 
 def test_normal_init_shapes_and_values(key):
@@ -24,8 +25,12 @@ def test_normal_init_shapes_and_values(key):
 def test_reinit_model_params_weight_and_bias(key):
     """Verify that reinit_model_params resets weights to normal(0, 0.02) and biases to 0."""
     layer_dims = [1, 8, 16]
+    fc_out_dim = 16
     kernel_size = 3
-    model = Network(layer_dims, kernel_size, key)
+    height = 32
+    width = 32
+    fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
+    model = Network(layer_dims, fc_in_dim, fc_out_dim, kernel_size, key)
 
     # Reinit with different dtype for demonstration
     new_dtype = "bfloat16"
@@ -67,7 +72,11 @@ def test_network_init(key):
     """Test that Network initializes without errors."""
     layer_dims = [1, 8, 16]
     kernel_size = 3
-    model = Network(layer_dims, kernel_size, key)
+    fc_out_dim = 16
+    height = 32
+    width = 32
+    fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
+    model = Network(layer_dims, fc_in_dim, fc_out_dim, kernel_size, key)
 
     assert len(model.layers) == 2  # For 3 dims => 2 convolution layers
     assert isinstance(model.out_layer, eqx.nn.Linear)
@@ -77,50 +86,63 @@ def test_network_forward_pass(key):
     """Test a forward pass on a mock input to ensure shape correctness."""
     layer_dims = [1, 8, 16]  # in_channels=1 -> out_channels=16 after conv layers
     kernel_size = 3
-    model = Network(layer_dims, kernel_size, key)
+    fc_out_dim = 16
+    height = 64
+    width = 64
+    fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
+    model, state = eqx.nn.make_with_state(Network)(layer_dims, fc_in_dim, fc_out_dim, kernel_size, key)
 
     # Suppose `channels=1` and 'mels=64' and 'frames=64'
     # model.__call__(...) expects shape (1, mels, frames)
-    x = jnp.ones((1, 64, 64))  # Single sample
+    x = jnp.ones((1, height, width))  # Single sample
 
     # Forward pass
-    output = model(x)
+    output, new_state = model(x, inference=True, state=state)
+
 
     # Since out_layer has 1 output unit, we expect shape (1, ) or scalar.
     # It might end up as shape (64,) if vmap is used across mels.
     assert output.shape[-1] == 1, f"Expected output shape (..., 1), got {output.shape}"
+    assert new_state is not None, "Expected batch norm state to be returned"
 
 
 def test_network_multiple_samples(key):
     """Test passing multiple inputs via vmap or batching logic if relevant."""
     layer_dims = [1, 8, 16]
     kernel_size = 3
-    model = Network(layer_dims, kernel_size, key)
+    fc_out_dim = 16
+    height = 64
+    width = 64
+    fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
+    model, state = eqx.nn.make_with_state(Network)(layer_dims, fc_in_dim, fc_out_dim, kernel_size, key)
 
     # Simulate a batch of 5 samples, each with shape (1, 64, 64)
     batch_size = 5
-    x_batch = jnp.ones((batch_size, 1, 64, 64))
+    x_batch = jnp.ones((batch_size, 1, height, width))
 
     # use vmap on the model
-    batched_model = jax.vmap(model, in_axes=0)
-    outputs = batched_model(x_batch)
+    batched_model = jax.vmap(model, in_axes=(0, None, None, None))
+    outputs, states = batched_model(x_batch, True, state, None)
 
     # Check that we have a per-sample output
-    assert outputs.shape[0] == batch_size
-    assert outputs.shape[-1] == 1
+    assert outputs.shape == (batch_size, 1), f"Expected output shape ({batch_size}, 1), got {outputs.shape}"
 
 
 def test_network_grad(key):
     """Simple gradient check to ensure model is trainable."""
     layer_dims = [1, 8, 16]
     kernel_size = 3
-    model = Network(layer_dims, kernel_size, key)
+    fc_out_dim = 16
+    height = 64
+    width = 64
+    fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
+    model, state = eqx.nn.make_with_state(Network)(layer_dims, fc_in_dim, fc_out_dim, kernel_size, key)
 
-    x = jnp.ones((1, 64, 64), dtype=jnp.float32)
+    x = jnp.ones((1, height, width), dtype=jnp.float32)
     y = jnp.array([1.0])  # Suppose we want a scalar target
 
     def loss_fn(m, inputs, target):
-        pred = m(inputs)
+        pred, _ = m(inputs, inference=True, state=state)
         return ((pred - target) ** 2).squeeze()  # MSE
 
     grads = eqx.filter_grad(loss_fn)(model, x, y)
