@@ -1,5 +1,6 @@
 import os
 import random
+import argparse
 from collections import defaultdict
 import numpy as np
 from rich import print
@@ -87,6 +88,15 @@ def compute_log_mel_spectrogram(audio: np.ndarray, sr: int = 12000) -> np.ndarra
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--normalization_mode",
+        type=str,
+        default="global",
+        choices=["global", "binwise"],
+    )
+    args = parser.parse_args()
+
     # Load dataset and resample to 12kHz
     print("Loading and resampling dataset...")
     dataset_train = load_dataset("rfcx/frugalai", split="train")
@@ -194,33 +204,47 @@ def main():
     )
 
     # Normalize data to zero mean and unit variance
-    mean = np.mean(X_train, axis=0)
-    std = np.std(X_train, axis=0) + 1e-6  # Avoid division by zero
-    # Normalize data per frequency bin
-    # mean = X_train.mean(axis=(0, 2), keepdims=True)
-    # std = X_train.std(axis=(0, 2), keepdims=True) + 1e-6
+    print(f"Normalizing data with mode: {args.normalization_mode}")
+    if args.normalization_mode == "global":
+        mean = np.mean(X_train, axis=0)
+        std = np.std(X_train, axis=0) + 1e-6  # Avoid division by zero
+    elif args.normalization_mode == "binwise":
+        # Normalize data per frequency bin
+        mean = X_train.mean(axis=(0, 2), keepdims=True)
+        std = X_train.std(axis=(0, 2), keepdims=True) + 1e-6
+    else:
+        raise ValueError(f"Invalid normalization mode: {args.normalization_mode}")
 
     # Apply normalization
     X_train = (X_train - mean) / std
     X_val = (X_val - mean) / std
     X_test = (X_test - mean) / std
 
-    print(f"X_train shape: {X_train.shape} | mean: {np.mean(X_train):.3f} | std: {np.std(X_train):.3f}")
-    print(f"y_train shape: {y_train.shape} | class distribution: {np.bincount(y_train)}")
-    print(f"X_val shape: {X_val.shape} | mean: {np.mean(X_val):.3f} | std: {np.std(X_val):.3f}")
+    print(
+        f"X_train shape: {X_train.shape} | mean: {np.mean(X_train):.3f} | std: {np.std(X_train):.3f}"
+    )
+    print(
+        f"y_train shape: {y_train.shape} | class distribution: {np.bincount(y_train)}"
+    )
+    print(
+        f"X_val shape: {X_val.shape} | mean: {np.mean(X_val):.3f} | std: {np.std(X_val):.3f}"
+    )
     print(f"y_val shape: {y_val.shape} | class distribution: {np.bincount(y_val)}")
-    print(f"X_test shape: {X_test.shape} | mean: {np.mean(X_test):.3f} | std: {np.std(X_test):.3f}")
+    print(
+        f"X_test shape: {X_test.shape} | mean: {np.mean(X_test):.3f} | std: {np.std(X_test):.3f}"
+    )
     print(f"y_test shape: {y_test.shape} | class distribution: {np.bincount(y_test)}")
 
-    os.makedirs("data", exist_ok=True)
-    np.save("data/X_train.npy", X_train)
-    np.save("data/y_train.npy", y_train)
-    np.save("data/X_val.npy", X_val)
-    np.save("data/y_val.npy", y_val)
-    np.save("data/X_test.npy", X_test)
-    np.save("data/y_test.npy", y_test)
+    data_dir = "data" if args.normalization_mode == "global" else "data_binwise"
+    os.makedirs(data_dir, exist_ok=True)
+    np.save(os.path.join(data_dir, "X_train.npy"), X_train)
+    np.save(os.path.join(data_dir, "y_train.npy"), y_train)
+    np.save(os.path.join(data_dir, "X_val.npy"), X_val)
+    np.save(os.path.join(data_dir, "y_val.npy"), y_val)
+    np.save(os.path.join(data_dir, "X_test.npy"), X_test)
+    np.save(os.path.join(data_dir, "y_test.npy"), y_test)
 
-    print("Done! Saved processed arrays to data/")
+    print(f"Done! Saved processed arrays to {data_dir}/")
 
 
 if __name__ == "__main__":
