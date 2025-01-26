@@ -1,8 +1,15 @@
 __pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
 .DS_store
 .vscode
 .env
-data/*.npy
+.venv
+data/
+data_binwise/
 .coverage
 *.jsonl
 results/

@@ -7,7 +7,7 @@ from rich import print as rprint
 def main():
     # Parse command-line args
     if len(sys.argv) < 2:
-        rprint("Usage: python entry_point.py <command> [args...]")
+        rprint("Usage: uv run entry_point.py <command> [args...]")
         rprint("Commands:")
         rprint("- train: Run the training script")
         rprint("- plot: Run the plotting script")
