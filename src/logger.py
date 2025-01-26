@@ -48,21 +48,22 @@ def setup_logger(
     """Sets up a logger that outputs to the console using Rich and writes specific logs to a file."""
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
+    logger.handlers = []
 
-    # Prevent adding multiple handlers if logger is already configured
-    if not logger.handlers:
-        # Console handler with Rich
-        rich_handler = RichHandler(rich_tracebacks=True)
-        rich_handler.setLevel(logging.INFO)
-        logger.addHandler(rich_handler)
+    # Console handler with Rich
+    rich_handler = RichHandler(rich_tracebacks=True)
+    rich_handler.setLevel(logging.INFO)
+    logger.addHandler(rich_handler)
 
-        # File handler for logs
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(logging.INFO)
-        file_handler.addFilter(StepFilter())
+    # File handler for logs
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+    file_handler.addFilter(StepFilter())
 
-        json_formatter = JsonFormatter()
-        file_handler.setFormatter(json_formatter)
-        logger.addHandler(file_handler)
+    json_formatter = JsonFormatter()
+    file_handler.setFormatter(json_formatter)
+    logger.addHandler(file_handler)
+
+    logger.propagate = False
 
     return logger
