@@ -10,7 +10,7 @@ import jax.random as jr
 import optax
 from jaxtyping import Array, Float, Key, PyTree, Scalar
 from torch.utils.data import DataLoader
-from src.utils import configure_pbar, save_checkpoint
+from src.utils import configure_pbar, save_checkpoint, compute_metrics_from_logits
 
 # Get the logger instance
 logger = logging.getLogger("train")
@@ -73,23 +73,6 @@ def validate_step(
 ) -> tuple[Scalar, Float[Array, "batch 1"]]:
     loss, logits = validation_forward_pass(inference_model, x, y, state)
     return loss, logits
-
-
-def compute_metrics_from_logits(
-    logits: Float[Array, "batch 1"], labels: Float[Array, " batch"]
-) -> tuple[int, int, int, int, int]:
-    """Calculate TP, FP, FN, and correct predictions from logits and labels."""
-    preds = jax.nn.sigmoid(logits)
-    preds_bin = (preds >= 0.5).astype(jnp.float32)
-    preds_bin = preds_bin.squeeze(axis=-1)
-    y_bin = labels.astype(jnp.float32)
-
-    tp = jnp.sum((preds_bin == 1) & (y_bin == 1)).item()
-    fp = jnp.sum((preds_bin == 1) & (y_bin == 0)).item()
-    fn = jnp.sum((preds_bin == 0) & (y_bin == 1)).item()
-    tn = jnp.sum((preds_bin == 0) & (y_bin == 0)).item()
-    correct = jnp.sum(preds_bin == y_bin).item()
-    return tp, fp, fn, tn, correct
 
 
 def train(

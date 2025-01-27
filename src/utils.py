@@ -1,5 +1,7 @@
 import json
 import numpy as np
+import jax
+import jax.numpy as jnp
 import jax.random as jr
 import pandas as pd
 import equinox as eqx
@@ -11,6 +13,7 @@ from rich.progress import (
     TaskProgressColumn,
     Column,
 )
+from jaxtyping import Array, Float
 import matplotlib.pyplot as plt
 from src.model import Network
 
@@ -26,6 +29,34 @@ def compute_fc_in_dim(
         width = (width + 2 * padding - kernel_size) // stride + 1
     final_out_channels = layer_dims[-1]
     return height * width * final_out_channels
+
+
+def make_prediction(
+    logits: Float[Array, "batch 1"], threshold: float = 0.5
+) -> tuple[int, int, int, int, int]:
+    """Make predictions for a given batch of data."""
+    preds = jax.nn.sigmoid(logits)
+    preds_bin = (preds >= threshold).astype(jnp.int32)
+    preds_bin = preds_bin.squeeze(axis=-1).tolist()
+
+    return preds_bin
+
+
+def compute_metrics_from_logits(
+    logits: Float[Array, "batch 1"], labels: Float[Array, " batch"]
+) -> tuple[int, int, int, int, int]:
+    """Calculate TP, FP, FN, and correct predictions from logits and labels."""
+    preds = jax.nn.sigmoid(logits)
+    preds_bin = (preds >= 0.5).astype(jnp.float32)
+    preds_bin = preds_bin.squeeze(axis=-1)
+    y_bin = labels.astype(jnp.float32)
+
+    tp = jnp.sum((preds_bin == 1) & (y_bin == 1)).item()
+    fp = jnp.sum((preds_bin == 1) & (y_bin == 0)).item()
+    fn = jnp.sum((preds_bin == 0) & (y_bin == 1)).item()
+    tn = jnp.sum((preds_bin == 0) & (y_bin == 0)).item()
+    correct = jnp.sum(preds_bin == y_bin).item()
+    return tp, fp, fn, tn, correct
 
 
 def save_checkpoint(filename: str, model: eqx.Module, state: eqx.nn.State) -> None:
