@@ -24,7 +24,7 @@ def reinit_model_params(model: eqx.Module, dtype: str, key: PRNGKeyArray) -> eqx
     out_std = 0.2
 
     # Conv layer weights
-    is_conv_layer = lambda x: isinstance(x, eqx.nn.Conv2d)
+    is_conv_layer = lambda x: isinstance(x, eqx.nn.Conv2d)  # noqa
     conv_layers = [
         x for x in jax.tree.leaves(model, is_leaf=is_conv_layer) if is_conv_layer(x)
     ]

@@ -17,9 +17,9 @@ def test_normal_init_shapes_and_values(key):
     # Check that the standard deviation is close to the expected range.
     # This is a loose check; distribution can vary with small sample sizes.
     approx_std = jnp.std(arr)
-    assert (
-        0.01 < approx_std < 0.03
-    ), f"Expected std close to {std_val}, got {approx_std}"
+    assert 0.01 < approx_std < 0.03, (
+        f"Expected std close to {std_val}, got {approx_std}"
+    )
 
 
 def test_reinit_model_params_weight_and_bias(key):
@@ -90,7 +90,9 @@ def test_network_forward_pass(key):
     height = 64
     width = 64
     fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
-    model, state = eqx.nn.make_with_state(Network)(layer_dims, fc_in_dim, fc_out_dim, kernel_size, key)
+    model, state = eqx.nn.make_with_state(Network)(
+        layer_dims, fc_in_dim, fc_out_dim, kernel_size, key
+    )
 
     # Suppose `channels=1` and 'mels=64' and 'frames=64'
     # model.__call__(...) expects shape (1, mels, frames)
@@ -98,7 +100,6 @@ def test_network_forward_pass(key):
 
     # Forward pass
     output, new_state = model(x, inference=True, state=state)
-
 
     # Since out_layer has 1 output unit, we expect shape (1, ) or scalar.
     # It might end up as shape (64,) if vmap is used across mels.
@@ -114,7 +115,9 @@ def test_network_multiple_samples(key):
     height = 64
     width = 64
     fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
-    model, state = eqx.nn.make_with_state(Network)(layer_dims, fc_in_dim, fc_out_dim, kernel_size, key)
+    model, state = eqx.nn.make_with_state(Network)(
+        layer_dims, fc_in_dim, fc_out_dim, kernel_size, key
+    )
 
     # Simulate a batch of 5 samples, each with shape (1, 64, 64)
     batch_size = 5
@@ -125,7 +128,9 @@ def test_network_multiple_samples(key):
     outputs, states = batched_model(x_batch, True, state, None)
 
     # Check that we have a per-sample output
-    assert outputs.shape == (batch_size, 1), f"Expected output shape ({batch_size}, 1), got {outputs.shape}"
+    assert outputs.shape == (batch_size, 1), (
+        f"Expected output shape ({batch_size}, 1), got {outputs.shape}"
+    )
 
 
 def test_network_grad(key):
@@ -136,7 +141,9 @@ def test_network_grad(key):
     height = 64
     width = 64
     fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
-    model, state = eqx.nn.make_with_state(Network)(layer_dims, fc_in_dim, fc_out_dim, kernel_size, key)
+    model, state = eqx.nn.make_with_state(Network)(
+        layer_dims, fc_in_dim, fc_out_dim, kernel_size, key
+    )
 
     x = jnp.ones((1, height, width), dtype=jnp.float32)
     y = jnp.array([1.0])  # Suppose we want a scalar target

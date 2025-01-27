@@ -16,7 +16,9 @@ class ChainsawDataset(Dataset):
         self.features = np.load(features_fp)
         self.labels = np.load(labels_fp)
         # Add channel dimension
-        self.features = einops.rearrange(self.features, "num_samples mels frames -> num_samples 1 mels frames")
+        self.features = einops.rearrange(
+            self.features, "num_samples mels frames -> num_samples 1 mels frames"
+        )
         # Testing TODO: remove
         # self.features = self.features[:32*1]
         # self.labels = self.labels[:32*1]

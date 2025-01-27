@@ -28,3 +28,6 @@ dev = [
     "pytest-cov>=6.0.0",
 ]
 
+[tool.ruff.lint]
+ignore = ["E501", "E226", "F722"]
+
