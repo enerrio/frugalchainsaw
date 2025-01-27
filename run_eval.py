@@ -14,6 +14,7 @@ from src.utils import (
     configure_pbar,
     plot_confusion_matrix,
     compute_metrics_from_logits,
+    compute_fc_in_dim,
 )
 
 
@@ -24,14 +25,21 @@ def main(args=None):
 
     cfg = pyrallis.parse(config_class=TrainConfig)
 
-    test_dataloader = load_data("data", "test", cfg.batch_size)
+    data_dir = "data" if cfg.normalization_mode == "global" else "data_binwise"
+    test_dataloader = load_data(data_dir, "test", cfg.batch_size)
     print(f"Batch size: {cfg.batch_size}")
     print(f"Number of batches in test dataloader: {len(test_dataloader)}")
 
     model_path = glob(f"{cfg.exp_dir}/*final.eqx")[0]
     print(f"Loading final model checkpoint from: {model_path}")
+    fc_in_dim = compute_fc_in_dim(
+        cfg.layer_dims,
+        cfg.kernel_size,
+        test_dataloader.dataset.features.shape[-2],
+        test_dataloader.dataset.features.shape[-1],
+    )
     model, state = load_checkpoint(
-        model_path, cfg.layer_dims, cfg.fc_dim, cfg.kernel_size
+        model_path, cfg.layer_dims, fc_in_dim, cfg.fc_out_dim, cfg.kernel_size
     )
     # TODO: Convert to dtype??
 
