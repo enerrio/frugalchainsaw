@@ -52,6 +52,14 @@ During training the model uses `sigmoid_binary_cross_entropy` loss function from
 * src: source code for the model and training loop
 * tests: unit tests
 
+In addition to the above there are four main entry scripts:
+* `run_train.py`: Train a model
+* `run_plot.py`: Plot the results of a training run
+* `run_eval.py`: Evaluate the model on the test set
+* `run_infer.py`: Run inference on the test set and save predictions to disk
+
+Finally, there is also `entry_point.py` that is used as a single point of entry for the above scripts in order to enforce `jaxtyping`.
+
 ## Training
 ---
 To train the model:
