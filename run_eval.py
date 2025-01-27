@@ -8,8 +8,13 @@ import equinox as eqx
 import pyrallis
 from run_train import TrainConfig
 from src.dataset import load_data
-from src.train import validate_step, compute_metrics_from_logits
-from src.utils import load_checkpoint, configure_pbar, plot_confusion_matrix
+from src.train import validate_step
+from src.utils import (
+    load_checkpoint,
+    configure_pbar,
+    plot_confusion_matrix,
+    compute_metrics_from_logits,
+)
 
 
 def main(args=None):
