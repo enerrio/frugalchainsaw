@@ -13,7 +13,7 @@ from rich.progress import (
     TaskProgressColumn,
     Column,
 )
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, Int
 import matplotlib.pyplot as plt
 from src.model import Network
 
@@ -33,11 +33,11 @@ def compute_fc_in_dim(
 
 def make_prediction(
     logits: Float[Array, "batch 1"], threshold: float = 0.5
-) -> tuple[int, int, int, int, int]:
+) -> Int[Array, " batch"]:
     """Make predictions for a given batch of data."""
     preds = jax.nn.sigmoid(logits)
     preds_bin = (preds >= threshold).astype(jnp.int32)
-    preds_bin = preds_bin.squeeze(axis=-1).tolist()
+    preds_bin = preds_bin.squeeze(axis=-1)
 
     return preds_bin
 

@@ -12,6 +12,7 @@ def main():
         rprint("- train: Run the training script")
         rprint("- plot: Run the plotting script")
         rprint("- eval: Run the evaluation script")
+        rprint("- infer: Run the inference script")
         rprint("- benchmark: Run the benchmarking script")
         sys.exit(1)
 
@@ -23,12 +24,13 @@ def main():
         "train": "run_train.py",
         "plot": "run_plot.py",
         "eval": "run_eval.py",
+        "infer": "run_infer.py",
         "benchmark": "benchmark.py",
     }
 
     if command not in command_map:
         print(f"Unknown command: {command}")
-        print("Available commands: train, plot, eval, benchmark")
+        print("Available commands: train, plot, eval, infer, benchmark")
         sys.exit(1)
 
     with install_import_hook(["src"], "typeguard.typechecked"):
@@ -41,6 +43,9 @@ def main():
         elif command == "eval":
             run_eval = importlib.import_module("run_eval")
             run_eval.main(args)
+        elif command == "infer":
+            run_infer = importlib.import_module("run_infer")
+            run_infer.main(args)
         elif command == "benchmark":
             run_benchmark = importlib.import_module("scripts.benchmark")
             run_benchmark.main(args)
