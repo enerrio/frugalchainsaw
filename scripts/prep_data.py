@@ -243,6 +243,9 @@ def main():
     np.save(os.path.join(data_dir, "y_val.npy"), y_val)
     np.save(os.path.join(data_dir, "X_test.npy"), X_test)
     np.save(os.path.join(data_dir, "y_test.npy"), y_test)
+    # Save mean and std for inference
+    np.save(os.path.join(data_dir, "mean.npy"), mean)
+    np.save(os.path.join(data_dir, "std.npy"), std)
 
     print(f"Done! Saved processed arrays to {data_dir}/")
 
