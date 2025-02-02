@@ -1,5 +1,6 @@
 # Frugal AI Challenge
 ---
+The [Frugal AI Challenge](https://frugalaichallenge.org) is an event made up of three machine learning tasks across different modalities with the purpose of encouraging people to keep efficiency in mind when deploying ML models. This repo tackles the `Detecting illegal deforestation` task which is a binary classification task using audio data. The main training and evaluation code is here but for the purposes of the challenge, a scaled down version of the inference code lives in a [HuggingFace Spaces repo](https://huggingface.co/spaces/enerrio/submission-template/tree/main) which handles measuring inference efficiency and task submission.
 
 
 ## Data
@@ -10,13 +11,13 @@ Some exploratory data analysis was done in the `scripts/eda.ipynb` notebook and 
 
 There is one script called `scripts/prep_data.py` that is responsible for downloading and preprocessing the audio data. The script will do the following:
 1. Download datasets from Hugging Face
-2. Remove three "bad samples" (zero-length audio arrays) from the test set that were discovered during exploratory data analysis
+2. Remove three "bad samples" (zero-length audio arrays) from the test set that were discovered during exploratory data analysis (these are not removed from the test set during challenge submission)
 3. Remove outliers from training set based on audio durations
 4. Downsample the majority class in the train set so that the distribution of class labels are even (initially there are more non-chainsaw audio samples than chainsaw audio samples)
 5. Pad train and test set audio arrays with zeros so that they are all the same length
 6. Convert train and test audio arrays to mel spectrograms
 7. Normalize the data either globally or per frequency bin
-8. Save arrays to `data/` folder
+8. Save arrays to disk
 
 ## Environment
 ---
@@ -46,9 +47,11 @@ The model's weights are initialized using a custom initialization scheme defined
 During training the model uses `sigmoid_binary_cross_entropy` loss function from [Optax](https://optax.readthedocs.io/en/latest/) which expects the model's output to be a single value for each sample i.e. logits.
 
 ## Folder structure:
-* scripts: for ipynbs and one off scripts. 
-* data: Preprocessed audio data stored as numpy arrays
-* configs: model configuration files
+* scripts: for notebooks and one off scripts. 
+* data: Preprocessed audio data stored as numpy arrays using global normalization
+* data_binwise: Preprocessed audio data stored as numpy arrays using bin-wise normalization
+* configs: Model configuration files
+* results: Results from training runs
 * src: source code for the model and training loop
 * tests: unit tests
 
@@ -58,7 +61,7 @@ In addition to the above there are four main entry scripts:
 * `run_eval.py`: Evaluate the model on the test set
 * `run_infer.py`: Run inference on the test set and save predictions to disk
 
-Finally, there is also `entry_point.py` that is used as a single point of entry for the above scripts in order to enforce `jaxtyping`.
+Finally, there is also `entry_point.py` that is used as a single point of entry for the all the above scripts in order to enforce `jaxtyping`.
 
 ## Training
 ---
@@ -110,7 +113,6 @@ TODO:
 - [X] train on deep baseline (10 epochs)
 - [ ] train on medium baseline w/ weight decay (50 epochs)
 - [ ] train on longer baseline (100 epochs)
-- [ ] read those papers
-- [ ] model optimization in tensorflow link
-- [ ] quantize model and measure on test set
+- [ ] quantize model and measure efficiency gains
+- [ ] try training on hardware accelerators (GPU/TPU) via Google Colab
 - [X] replace conda with uv
