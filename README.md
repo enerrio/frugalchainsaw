@@ -39,7 +39,7 @@ Check out `pyproject.toml` to see all the dependencies that are required. The ma
 
 
 ## Model
---
+---
 The model is a simple convolutional neural network written in Jax. Batch normalization is applied to each layer and a leaky ReLU activation function is applied after each layer. The final layer is a fully connected layer that outputs a single value for each sample.
 
 The model's weights are initialized using a custom initialization scheme defined in the `reinit_model_params` function. This function also allows the user to specify the data type for the model's weights.
@@ -96,7 +96,8 @@ chmod +x setup.sh
 Following training, we can optimize the model for deployment in a number of ways. One way is to quantize the model.
 
 
-TODO:
+## TODO:
+---
 - [X] downsample data so classes
 - [X] remember to resample audio during inference and on test data
 - [X] create script `prep_data.py` that downloads and preprocesses data and saves to numpy arrays in data/
