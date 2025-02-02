@@ -105,9 +105,9 @@ TODO:
 - [X] write evaluate script to evaluate model on test set
 - [X] evaluate script: add confusion matrix plot
 - [ ] use code carbon to estimate hardware energy consumption
-- [ ] train on float16 baseline (10 epochs)
-- [ ] train on bfloat16 baseline (10 epochs)
-- [ ] train on deep baseline (10 epochs)
+- [X] train on float16 baseline (10 epochs)
+- [X] train on bfloat16 baseline (10 epochs)
+- [X] train on deep baseline (10 epochs)
 - [ ] train on medium baseline w/ weight decay (50 epochs)
 - [ ] train on longer baseline (100 epochs)
 - [ ] read those papers
