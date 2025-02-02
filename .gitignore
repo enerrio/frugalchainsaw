@@ -12,4 +12,6 @@ data/
 data_binwise/
 .coverage
 *.jsonl
-results/
+results/*/*.npy
+*cm*.png
+*.eqx
