@@ -35,11 +35,11 @@ def reinit_model_params(model: eqx.Module, dtype: str, key: PRNGKeyArray) -> eqx
         normal_init(k, s, dtype, 0.0, conv_std) for k, s in zip(w_keys, w_shapes)
     ]
     new_biases = [jnp.full(s, 0.01, dtype=dtype) for s in b_shapes]
-    # Initialize output layer separately
-    out_w_shape = model.out_layer.weight.shape
-    out_b_shape = model.out_layer.bias.shape
-    new_out_weight = normal_init(key_out, out_w_shape, dtype, 0.0, out_std)
-    new_out_bias = jnp.zeros(out_b_shape, dtype=dtype)
+    # Initialize fc layers separately
+    new_out_weight = normal_init(key_out, model.out_layer.weight.shape, dtype, 0.0, out_std)
+    new_out_bias = jnp.zeros(model.out_layer.bias.shape, dtype=dtype)
+    # new_fc_weight = normal_init(key_out, model.fc_layer.weight.shape, dtype, 0.0, out_std)
+    # new_fc_bias = jnp.zeros(model.fc_layer.bias.shape, dtype=dtype)
     # new_out_bias = jnp.full(out_b_shape, -1.0, dtype=dtype)
 
     # Replace conv weights
@@ -80,6 +80,7 @@ class Network(eqx.Module):
         fc_in_dim: int,
         fc_out_dim: int,
         kernel_size: int,
+        dtype: str,
         key: PRNGKeyArray,
     ):
         keys = jr.split(key, len(layer_dims) + 1)
@@ -93,12 +94,13 @@ class Network(eqx.Module):
                     kernel_size=kernel_size,
                     stride=(1 if i == 0 else 2),
                     padding=kernel_size // 2,
+                    dtype=dtype,
                     key=keys[i],
                 )
             )
-            self.bn_layers.append(eqx.nn.BatchNorm(out_dim, axis_name="batch"))
-        self.fc_layer = eqx.nn.Linear(fc_in_dim, fc_out_dim, key=keys[-2])
-        self.out_layer = eqx.nn.Linear(fc_out_dim, 1, key=keys[-1])
+            self.bn_layers.append(eqx.nn.BatchNorm(out_dim, axis_name="batch", dtype=dtype))
+        self.fc_layer = eqx.nn.Linear(fc_in_dim, fc_out_dim, dtype=dtype, key=keys[-2])
+        self.out_layer = eqx.nn.Linear(fc_out_dim, 1, dtype=dtype, key=keys[-1])
 
     def __call__(
         self,

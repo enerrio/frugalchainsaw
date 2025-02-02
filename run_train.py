@@ -107,7 +107,7 @@ def main(args=None):
     )
     model_key, train_key = jr.split(key)
     model, state = eqx.nn.make_with_state(Network)(
-        cfg.layer_dims, fc_in_dim, cfg.fc_out_dim, cfg.kernel_size, model_key
+        cfg.layer_dims, fc_in_dim, cfg.fc_out_dim, cfg.kernel_size, cfg.dtype, model_key
     )
     model = reinit_model_params(model, cfg.dtype, model_key)
     # model_str = eqx.tree_pformat(model)
@@ -132,9 +132,9 @@ def main(args=None):
     # )
     # probs = jax.nn.sigmoid(logits)
     # logger.info("Initial prediction stats:")
-    # logger.info(f"Mean: {jnp.mean(probs):.3f}")
-    # logger.info(f"Std: {jnp.std(probs):.3f}")
-    # logger.info(f"Min/Max: {jnp.min(probs):.3f}/{jnp.max(probs):.3f}")
+    # logger.info(f"Mean: {jnp.mean(probs).item():.3f}")
+    # logger.info(f"Std: {jnp.std(probs).item():.3f}")
+    # logger.info(f"Min/Max: {jnp.min(probs).item():.3f}/{jnp.max(probs).item():.3f}")
     # logger.info(f"Actual initial loss is: {loss:.3f}")
     # logger.info(f"> conv2d weight dtype: {model.layers[0].weight.dtype}")
     # logger.info(f"> conv2d bias dtype: {model.layers[0].bias.dtype}")
@@ -146,6 +146,10 @@ def main(args=None):
     # )
     # logger.info(f"> conv2d weight dtype: {model.layers[-1].weight.dtype}")
     # logger.info(f"> conv2d bias dtype: {model.layers[-1].bias.dtype}")
+    # logger.info(f"> bn dtype: {model.bn_layers[-1].weight.dtype}")
+    # logger.info(f"> bn bias dtype: {model.bn_layers[-1].bias.dtype}")
+    # logger.info(f"> fc_layer dtype: {model.fc_layer.weight.dtype}")
+    # logger.info(f"> fc_layer bias dtype: {model.fc_layer.bias.dtype}")
     # logger.info(f"> out_layer dtype: {model.out_layer.weight.dtype}")
     # logger.info(
     #     f"> out_layer weight mean/std: {model.out_layer.weight.mean(), model.out_layer.weight.std()}"

@@ -23,7 +23,7 @@ def compute_fc_in_dim(
 ) -> int:
     """Calculate fc layer input dim based on conv block."""
     padding = kernel_size // 2
-    for i, (in_ch, out_ch) in enumerate(zip(layer_dims[:-1], layer_dims[1:])):
+    for i in range(len(layer_dims)-1):
         stride = 1 if i == 0 else 2
         height = (height + 2 * padding - kernel_size) // stride + 1
         width = (width + 2 * padding - kernel_size) // stride + 1
@@ -71,10 +71,11 @@ def load_checkpoint(
     fc_in_dim: int,
     fc_out_dim: int,
     kernel_size: int,
+    dtype: str,
 ) -> tuple[eqx.Module, eqx.nn.State]:
     """Load saved model."""
     skeleton, state = eqx.nn.make_with_state(Network)(
-        layer_dims, fc_in_dim, fc_out_dim, kernel_size, jr.key(21)
+        layer_dims, fc_in_dim, fc_out_dim, kernel_size, dtype, jr.key(21)
     )
     with open(filename, "rb") as f:
         model, state = eqx.tree_deserialise_leaves(f, (skeleton, state))
@@ -169,8 +170,12 @@ def plot_confusion_matrix(cm: np.ndarray, cm_name: str) -> None:
 def plot_stats(logfile: str, plot_name: str, cm_name: str) -> None:
     """Plots training stats."""
     step_df, epoch_df = read_log_file(logfile)
-    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
 
+    # Compute total training time from step timestamps
+    step_df["timestamp"] = pd.to_datetime(step_df["timestamp"])
+    total_training_time = str(step_df["timestamp"].max() - step_df["timestamp"].min()).split('.')[0]
+
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     # Plot loss
     axes[0, 0].plot(epoch_df["epoch_train_loss"], label="Training Loss")
     axes[0, 0].plot(epoch_df["epoch_val_loss"], label="Validation Loss")
@@ -228,7 +233,8 @@ def plot_stats(logfile: str, plot_name: str, cm_name: str) -> None:
     axes[1, 1].set_ylim(0, 1.05)
     axes[1, 1].legend()
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    fig.suptitle(f"Total Training Time: {total_training_time}", fontsize=16)
     plt.savefig(plot_name)
     plt.close(fig)
 

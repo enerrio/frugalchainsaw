@@ -38,9 +38,8 @@ def main(args=None):
         test_dataloader.dataset.features.shape[-1],
     )
     model, state = load_checkpoint(
-        model_path, cfg.layer_dims, fc_in_dim, cfg.fc_out_dim, cfg.kernel_size
+        model_path, cfg.layer_dims, fc_in_dim, cfg.fc_out_dim, cfg.kernel_size, cfg.dtype
     )
-    # TODO: Convert to dtype??
 
     inference_model = eqx.nn.inference_mode(model)
     preds = []
