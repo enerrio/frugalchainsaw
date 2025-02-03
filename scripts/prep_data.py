@@ -1,6 +1,7 @@
 import os
 import random
 import argparse
+import multiprocessing as mp
 from collections import defaultdict
 import numpy as np
 from rich import print
@@ -22,8 +23,7 @@ THREE_SECOND_SAMPLE_LENGTH = 12000 * 3
 def calculate_duration(sample: dict) -> float:
     """Calculate audio duration in seconds."""
     audio_length = len(sample["audio"]["array"])
-    duration = audio_length / sample["audio"]["sampling_rate"]
-    return duration
+    return audio_length / sample["audio"]["sampling_rate"]
 
 
 def filter_duration_outliers(dataset: Dataset) -> Dataset:
@@ -31,10 +31,7 @@ def filter_duration_outliers(dataset: Dataset) -> Dataset:
     # Calculate durations
     durations = []
     paths = []
-    for sample in track(
-        dataset,
-        description="Calculating durations...",
-    ):
+    for sample in track(dataset, description="Calculating durations..."):
         duration = calculate_duration(sample)
         durations.append(duration)
         paths.append(sample["audio"]["path"])
@@ -49,7 +46,6 @@ def filter_duration_outliers(dataset: Dataset) -> Dataset:
     filtered_dataset = dataset.filter(
         lambda x: x["audio"]["path"] not in bad_sample_paths
     )
-
     return filtered_dataset
 
 
@@ -57,10 +53,7 @@ def downsample_majority_class(dataset: Dataset) -> Dataset:
     """Balance dataset by downsampling majority class."""
     # Group samples by label
     label2paths = defaultdict(list)
-    for example in track(
-        dataset,
-        description="Grouping samples by label...",
-    ):
+    for example in track(dataset, description="Grouping samples by label..."):
         label2paths[example["label"]].append(example["audio"]["path"])
 
     # Get min count
@@ -78,13 +71,22 @@ def downsample_majority_class(dataset: Dataset) -> Dataset:
     return balanced_dataset
 
 
-def compute_log_mel_spectrogram(audio: np.ndarray, sr: int = 12000) -> np.ndarray:
-    """Compute mel spectrogram from audio."""
-    audio_stft = librosa.stft(audio)
-    audio_stft_mag, _ = librosa.magphase(audio_stft)
-    mel_spectrogram = librosa.feature.melspectrogram(S=audio_stft_mag, sr=sr)
-    log_mel_spectrogram = librosa.amplitude_to_db(mel_spectrogram, ref=np.max)
-    return log_mel_spectrogram
+def pad_and_compute_mel(sample: dict) -> dict:
+    audio = sample["audio"]["array"]
+    sr = sample["audio"]["sampling_rate"]
+
+    # Trim if audio is longer than target; otherwise, pad.
+    if len(audio) > THREE_SECOND_SAMPLE_LENGTH:
+        audio = audio[:THREE_SECOND_SAMPLE_LENGTH]
+    else:
+        pad_width = THREE_SECOND_SAMPLE_LENGTH - len(audio)
+        audio = np.pad(audio, (0, pad_width), mode="constant", constant_values=0)
+
+    # Compute mel spectrogram directly from audio.
+    mel_spec = librosa.feature.melspectrogram(y=audio, sr=sr)
+    # Convert power spectrogram to dB scale.
+    log_mel_spectrogram = librosa.power_to_db(mel_spec, ref=np.max)
+    return {"array": log_mel_spectrogram, "label": sample["label"]}
 
 
 def main():
@@ -96,98 +98,51 @@ def main():
         choices=["global", "binwise"],
     )
     args = parser.parse_args()
+    cpu_count = mp.cpu_count()
+    print(f"Number of CPUs: {cpu_count}")
 
     # Load dataset and resample to 12kHz
     print("Loading and resampling dataset...")
     dataset_train = load_dataset("rfcx/frugalai", split="train")
     dataset_test = load_dataset("rfcx/frugalai", split="test")
-    dataset_train_resampled = dataset_train.cast_column(
-        "audio", Audio(sampling_rate=12000)
-    )
-    dataset_test_resampled = dataset_test.cast_column(
-        "audio", Audio(sampling_rate=12000)
-    )
+    dataset_train = dataset_train.cast_column("audio", Audio(sampling_rate=12000))
+    dataset_test = dataset_test.cast_column("audio", Audio(sampling_rate=12000))
     print(f"Number of training samples: {len(dataset_train):,}")
     print(f"Number of testing samples: {len(dataset_test):,}")
     # Remove bad samples from test set
-    dataset_test_resampled = dataset_test_resampled.filter(
+    dataset_test = dataset_test.filter(
         lambda x: x["audio"]["path"] not in BAD_TEST_PATHS
     )
     print(
-        f"Number of testing samples after removing bad samples: {len(dataset_test_resampled):,}"
+        f"Number of testing samples after removing bad samples: {len(dataset_test):,}"
     )
 
     # Filter duration outliers
     print("Filtering duration outliers...")
-    filtered_train_dataset = filter_duration_outliers(dataset_train_resampled)
+    dataset_train = filter_duration_outliers(dataset_train)
     print(
-        f"Number of training samples after filtering duration outliers: {len(filtered_train_dataset):,}"
+        f"Number of training samples after filtering duration outliers: {len(dataset_train):,}"
     )
 
     # Balance classes
     print("Balancing classes in training set...")
-    balanced_train_dataset = downsample_majority_class(filtered_train_dataset)
-    print(
-        f"Number of training samples after downsampling: {len(balanced_train_dataset):,}"
-    )
+    dataset_train = downsample_majority_class(dataset_train)
+    print(f"Number of training samples after downsampling: {len(dataset_train):,}")
 
-    # Pad audio to three seconds
-    print("Padding audio to three seconds...")
-    padded_train_dataset = balanced_train_dataset.map(
-        lambda x: {
-            "audio": {
-                "array": np.pad(
-                    x["audio"]["array"],
-                    (0, THREE_SECOND_SAMPLE_LENGTH - x["audio"]["array"].shape[0]),
-                    mode="constant",
-                    constant_values=0,
-                ),
-                "sampling_rate": x["audio"]["sampling_rate"],
-            },
-            "label": x["label"],
-        }
-    )
-    padded_test_dataset = dataset_test_resampled.map(
-        lambda x: {
-            "audio": {
-                "array": np.pad(
-                    x["audio"]["array"],
-                    (0, THREE_SECOND_SAMPLE_LENGTH - x["audio"]["array"].shape[0]),
-                    mode="constant",
-                    constant_values=0,
-                ),
-                "sampling_rate": x["audio"]["sampling_rate"],
-            },
-            "label": x["label"],
-        }
-    )
-    print(f"Number of training samples after padding: {len(padded_train_dataset):,}")
-    print(f"Number of testing samples after padding: {len(padded_test_dataset):,}")
-
-    # Convert to mel spectograms
-    print("Computing mel spectrograms...")
-    sgram_train_dataset = padded_train_dataset.map(
-        lambda x: {
-            "array": compute_log_mel_spectrogram(x["audio"]["array"]),
-            "label": x["label"],
-        }
-    )
-    sgram_test_dataset = padded_test_dataset.map(
-        lambda x: {
-            "array": compute_log_mel_spectrogram(x["audio"]["array"]),
-            "label": x["label"],
-        }
-    )
+    # Pad audio to three seconds and convert to mel-spectrogram
+    print("Processing audio (trimming/padding + computing mel spectrograms)...")
+    dataset_train = dataset_train.map(pad_and_compute_mel, num_proc=cpu_count)
+    dataset_test = dataset_test.map(pad_and_compute_mel, num_proc=cpu_count)
 
     # Convert to arrays and save
     print("Saving processed data...")
     X_train, X_test = [], []
     y_train, y_test = [], []
 
-    for sample in track(sgram_train_dataset, description="Processing training data..."):
+    for sample in track(dataset_train, description="Processing training data..."):
         X_train.append(np.array(sample["array"]))
         y_train.append(sample["label"])
-    for sample in track(sgram_test_dataset, description="Processing testing data..."):
+    for sample in track(dataset_test, description="Processing testing data..."):
         X_test.append(np.array(sample["array"]))
         y_test.append(sample["label"])
     X_train = np.array(X_train, dtype=np.float32)
