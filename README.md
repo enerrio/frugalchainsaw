@@ -65,6 +65,11 @@ Finally, there is also `entry_point.py` that is used as a single point of entry 
 
 ## Training
 ---
+Preparing data:
+```bash
+uv run scripts/prep_data.py --normalization_mode global
+```
+
 To train the model:
 ```bash
 uv run entry_point.py train --config_path=configs/baseline.yaml
