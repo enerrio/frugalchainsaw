@@ -117,7 +117,7 @@ Following training, we can optimize the model for deployment in a number of ways
 - [X] train on float16 baseline (10 epochs)
 - [X] train on bfloat16 baseline (10 epochs)
 - [X] train on deep baseline (10 epochs)
-- [ ] train on medium baseline w/ weight decay (50 epochs)
+- [X] train on medium baseline w/ weight decay (50 epochs)
 - [ ] train on longer baseline (100 epochs)
 - [ ] quantize model and measure efficiency gains
 - [ ] try training on hardware accelerators (GPU/TPU) via Google Colab
