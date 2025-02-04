@@ -148,7 +148,7 @@ def main(args=None) -> None:
     )
     model_key, train_key = jr.split(key)
     model, state = eqx.nn.make_with_state(Network)(
-        cfg.layer_dims, fc_in_dim, cfg.fc_out_dim, cfg.kernel_size, model_key
+        cfg.layer_dims, fc_in_dim, cfg.fc_out_dim, cfg.kernel_size, cfg.dtype, model_key
     )
     model = reinit_model_params(model, cfg.dtype, model_key)
 

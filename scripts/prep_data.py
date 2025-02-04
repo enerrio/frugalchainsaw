@@ -100,11 +100,11 @@ def apply_audio_augmentations(audio: np.ndarray, sr: int) -> np.ndarray:
     if np.random.rand() < 0.5:
         # Time stretching: random rate between 0.9 and 1.1
         rate = np.random.uniform(0.9, 1.1)
-        audio = librosa.effects.time_stretch(audio, rate)
+        audio = librosa.effects.time_stretch(audio, rate=rate)
     if np.random.rand() < 0.5:
         # Pitch shifting: shift by -2 to 2 semitones
         n_steps = np.random.uniform(-2, 2)
-        audio = librosa.effects.pitch_shift(audio, sr, n_steps)
+        audio = librosa.effects.pitch_shift(audio, sr=sr, n_steps=n_steps)
     if np.random.rand() < 0.5:
         # Noise injection: add low-level Gaussian noise
         noise_amp = 0.005 * np.random.uniform() * np.amax(audio)
