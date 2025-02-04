@@ -67,7 +67,7 @@ Finally, there is also `entry_point.py` that is used as a single point of entry 
 ---
 Preparing data:
 ```bash
-uv run scripts/prep_data.py --normalization_mode global
+uv run scripts/prep_data.py --normalization_mode global --augment false
 ```
 
 To train the model:
@@ -98,7 +98,7 @@ chmod +x setup.sh
 
 ## Post-training
 ---
-Following training, we can optimize the model for deployment in a number of ways. One way is to quantize the model.
+Following training, there are many ways to further optimize the model for deployment. One way is to quantize the model i.e. reduce the number of digits that represent the weights. This would essentially compress the model size and reduce the storage requirements needed, but it may also impact performance. Depending on the situation the tradeoff may be worth it, in this case having a speedy inference would be good, but a higher priority is deploying a model with a high recall score. By having a high recall score we'll have fewer false negatives, because the cost of missing a chainsaw in an audio file would be high (more deforestation).
 
 
 ## TODO:
@@ -113,7 +113,7 @@ Following training, we can optimize the model for deployment in a number of ways
 - [X] fix progress bar name. should say batches, not epochs
 - [X] write evaluate script to evaluate model on test set
 - [X] evaluate script: add confusion matrix plot
-- [ ] use code carbon to estimate hardware energy consumption
+- [X] use code carbon to estimate hardware energy consumption
 - [X] train on float16 baseline (10 epochs)
 - [X] train on bfloat16 baseline (10 epochs)
 - [X] train on deep baseline (10 epochs)

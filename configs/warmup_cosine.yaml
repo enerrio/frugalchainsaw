@@ -1,0 +1,17 @@
+seed: 42
+epochs: 50
+batch_size: 32
+layer_dims: [1, 32, 64]
+fc_out_dim: 128
+kernel_size: 3
+learning_rate: 0.001
+scale_by_adam: true
+weight_decay: 0.001
+warmup_percentage: 0.1
+decay_percentage: 0.1
+dtype: float32
+checkpoint_freq: 5
+normalization_mode: global
+augment: false
+results_dir: results
+exp_name: warmup_cosine
