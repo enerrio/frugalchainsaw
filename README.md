@@ -14,10 +14,11 @@ There is one script called `scripts/prep_data.py` that is responsible for downlo
 2. Remove three "bad samples" (zero-length audio arrays) from the test set that were discovered during exploratory data analysis (these are not removed from the test set during challenge submission)
 3. Remove outliers from training set based on audio durations
 4. Downsample the majority class in the train set so that the distribution of class labels are even (initially there are more non-chainsaw audio samples than chainsaw audio samples)
-5. Pad train and test set audio arrays with zeros so that they are all the same length
-6. Convert train and test audio arrays to mel spectrograms
-7. Normalize the data either globally or per frequency bin
-8. Save arrays to disk
+5. Apply random audio augmentation to the train set (pitch shifting, time stretching, and noise injection)
+6. Pad train and test set audio arrays with zeros so that they are all the same length
+7. Convert train and test audio arrays to mel spectrograms
+8. Normalize the data either globally or per frequency bin
+9. Save arrays to disk
 
 ## Environment
 ---
