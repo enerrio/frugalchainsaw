@@ -10,6 +10,8 @@ wheels/
 .venv
 data/
 data_binwise/
+data_augmented/
+data_binwise_augmented/
 .coverage
 *.jsonl
 results/*/*.npy
