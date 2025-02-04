@@ -30,7 +30,7 @@ def test_reinit_model_params_weight_and_bias(key):
     height = 32
     width = 32
     fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
-    model = Network(layer_dims, fc_in_dim, fc_out_dim, kernel_size, key)
+    model = Network(layer_dims, fc_in_dim, fc_out_dim, kernel_size, "float32", key)
 
     # Reinit with different dtype for demonstration
     new_dtype = "bfloat16"
@@ -76,7 +76,7 @@ def test_network_init(key):
     height = 32
     width = 32
     fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
-    model = Network(layer_dims, fc_in_dim, fc_out_dim, kernel_size, key)
+    model = Network(layer_dims, fc_in_dim, fc_out_dim, kernel_size, "float32", key)
 
     assert len(model.layers) == 2  # For 3 dims => 2 convolution layers
     assert isinstance(model.out_layer, eqx.nn.Linear)
@@ -91,7 +91,7 @@ def test_network_forward_pass(key):
     width = 64
     fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
     model, state = eqx.nn.make_with_state(Network)(
-        layer_dims, fc_in_dim, fc_out_dim, kernel_size, key
+        layer_dims, fc_in_dim, fc_out_dim, kernel_size, "float32", key
     )
 
     # Suppose `channels=1` and 'mels=64' and 'frames=64'
@@ -116,7 +116,7 @@ def test_network_multiple_samples(key):
     width = 64
     fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
     model, state = eqx.nn.make_with_state(Network)(
-        layer_dims, fc_in_dim, fc_out_dim, kernel_size, key
+        layer_dims, fc_in_dim, fc_out_dim, kernel_size, "float32", key
     )
 
     # Simulate a batch of 5 samples, each with shape (1, 64, 64)
@@ -142,7 +142,7 @@ def test_network_grad(key):
     width = 64
     fc_in_dim = compute_fc_in_dim(layer_dims, kernel_size, height, width)
     model, state = eqx.nn.make_with_state(Network)(
-        layer_dims, fc_in_dim, fc_out_dim, kernel_size, key
+        layer_dims, fc_in_dim, fc_out_dim, kernel_size, "float32", key
     )
 
     x = jnp.ones((1, height, width), dtype=jnp.float32)
