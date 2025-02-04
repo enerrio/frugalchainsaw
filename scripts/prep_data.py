@@ -1,6 +1,7 @@
 import os
 import random
 import argparse
+from functools import partial
 import multiprocessing as mp
 from collections import defaultdict
 import numpy as np
@@ -71,9 +72,13 @@ def downsample_majority_class(dataset: Dataset) -> Dataset:
     return balanced_dataset
 
 
-def pad_and_compute_mel(sample: dict) -> dict:
+def pad_and_compute_mel(sample: dict, augment: bool = False) -> dict:
+    """Pad audio to three seconds and compute mel spectrogram."""
     audio = sample["audio"]["array"]
     sr = sample["audio"]["sampling_rate"]
+
+    if augment:
+        audio = apply_audio_augmentations(audio, sr)
 
     # Trim if audio is longer than target; otherwise, pad.
     if len(audio) > THREE_SECOND_SAMPLE_LENGTH:
@@ -89,6 +94,24 @@ def pad_and_compute_mel(sample: dict) -> dict:
     return {"array": log_mel_spectrogram, "label": sample["label"]}
 
 
+def apply_audio_augmentations(audio: np.ndarray, sr: int) -> np.ndarray:
+    """Apply random audio augmentations."""
+    # Randomly apply time stretching, pitch shifting, and noise injection.
+    if np.random.rand() < 0.5:
+        # Time stretching: random rate between 0.9 and 1.1
+        rate = np.random.uniform(0.9, 1.1)
+        audio = librosa.effects.time_stretch(audio, rate)
+    if np.random.rand() < 0.5:
+        # Pitch shifting: shift by -2 to 2 semitones
+        n_steps = np.random.uniform(-2, 2)
+        audio = librosa.effects.pitch_shift(audio, sr, n_steps)
+    if np.random.rand() < 0.5:
+        # Noise injection: add low-level Gaussian noise
+        noise_amp = 0.005 * np.random.uniform() * np.amax(audio)
+        audio = audio + noise_amp * np.random.randn(len(audio))
+    return audio
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -97,6 +120,7 @@ def main():
         default="global",
         choices=["global", "binwise"],
     )
+    parser.add_argument("--augment", type=bool, default=False)
     args = parser.parse_args()
     cpu_count = mp.cpu_count()
     print(f"Number of CPUs: {cpu_count}")
@@ -131,8 +155,9 @@ def main():
 
     # Pad audio to three seconds and convert to mel-spectrogram
     print("Processing audio (trimming/padding + computing mel spectrograms)...")
-    dataset_train = dataset_train.map(pad_and_compute_mel, num_proc=cpu_count)
-    dataset_test = dataset_test.map(pad_and_compute_mel, num_proc=cpu_count)
+    print(f"Augmenting training audio: {args.augment}")
+    dataset_train = dataset_train.map(partial(pad_and_compute_mel, augment=args.augment), num_proc=cpu_count)
+    dataset_test = dataset_test.map(partial(pad_and_compute_mel, augment=False), num_proc=cpu_count)
 
     # Convert to arrays and save
     print("Saving processed data...")
@@ -191,6 +216,7 @@ def main():
     print(f"y_test shape: {y_test.shape} | class distribution: {np.bincount(y_test)}")
 
     data_dir = "data" if args.normalization_mode == "global" else "data_binwise"
+    data_dir += "_augmented" if args.augment else ""
     os.makedirs(data_dir, exist_ok=True)
     np.save(os.path.join(data_dir, "X_train.npy"), X_train)
     np.save(os.path.join(data_dir, "y_train.npy"), y_train)

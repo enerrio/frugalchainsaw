@@ -12,5 +12,6 @@ decay_percentage: 0.
 dtype: float16
 checkpoint_freq: 5
 normalization_mode: global
+augment: false
 results_dir: results
 exp_name: baselinehalf

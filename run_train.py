@@ -64,6 +64,8 @@ class TrainConfig:
     checkpoint_freq: int = 5
     # Data normalization mode (either global or binwise)
     normalization_mode: str = "global"
+    # Whether to augment data or not
+    augment: bool = False
     # Directory to store experiment results
     results_dir: Path = Path("results")
     # Experiment name
