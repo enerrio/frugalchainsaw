@@ -99,7 +99,7 @@ chmod +x setup.sh
 
 ## Post-training
 ---
-Following training, there are many ways to further optimize the model for deployment. One way is to quantize the model i.e. reduce the number of digits that represent the weights. This would essentially compress the model size and reduce the storage requirements needed, but it may also impact performance. Depending on the situation the tradeoff may be worth it, in this case having a speedy inference would be good, but a higher priority is deploying a model with a high recall score. By having a high recall score we'll have fewer false negatives, because the cost of missing a chainsaw in an audio file would be high (more deforestation).
+Following training, there are many ways to further optimize the model for deployment. One way is to quantize the model i.e. reduce the number of digits that represent the weights. This would essentially compress the model size and reduce the storage requirements needed, but it may also impact performance. Depending on the situation the tradeoff may be worth it, in this case having a speedy inference would be good, but a higher priority is deploying a model with a high recall score. By having a high recall score we'll have fewer false negatives and the cost of missing a chainsaw in an audio file would be high (i.e. lead to more deforestation). It depends on other factors as well (such as the available computational resources, real-time processing requirements, and the tolerance for increased storage or memory consumption), but it's easy to imagine that reducing the false negative rate would be worth a small increase in inference latency.
 
 
 ## TODO:
